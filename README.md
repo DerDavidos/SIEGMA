@@ -1,8 +1,15 @@
 # Code
 
-Required:
+### Required
 
     gcc
-    arm-non-eabi-gcc (gcc-arm-embedded)
+    arm-non-eabi-gcc
     cMake
+
+### Mac installation process
+
+Install brew: https://brew.sh/index_de, then run:
+
+    brew install gcc-arm-embedded
+    brew install cmake
 
