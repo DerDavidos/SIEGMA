@@ -42,7 +42,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <stdint.h>
 #include <stdbool.h>
 
-#include "../../../Trinamic-library/common.h"
+#include "common.h"
 
 #pragma pack(push, 1)
 

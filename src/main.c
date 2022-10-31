@@ -24,13 +24,7 @@ int main() {
     gpio_set_function(4, GPIO_FUNC_UART);
     gpio_set_function(5, GPIO_FUNC_UART);
 
-//    setOperationModeToSerial(serial,serial_baud_rate,serial_address);
-//    setRegistersToDefaults();
-//    readAndStoreRegisters();
-//    minimizeMotorCurrent();
-//    disable();
-//    disableAutomaticCurrentScaling();
-//    disableAutomaticGradientAdaptation();
+
 //    TMC2209_t tmc = tmc2209_defaults;
 //    TMC2209_Init();
 
