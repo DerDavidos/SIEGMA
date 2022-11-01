@@ -5,7 +5,11 @@
 #include "hardware/uart.h"
 #include "hardware/gpio.h"
 
-#include "tmc2209Alt/tmc2209Alt.h"
+#define UART_ID uart1
+#define DATA_BITS 8
+#define STOP_BITS 1
+#define PARITY    UART_PARITY_NONE
+
 
 int main() {
 
@@ -18,31 +22,36 @@ int main() {
     printf("Connected\n");
 
     // Initialise UART 0
-    uart_init(uart1, 115200);
+    uart_init(UART_ID, 115200);
 
     // Set the GPIO pin mux to the UART - 0 is TX, 1 is RX
     gpio_set_function(4, GPIO_FUNC_UART);
     gpio_set_function(5, GPIO_FUNC_UART);
 
 
-//    TMC2209_t tmc = tmc2209_defaults;
-//    TMC2209_Init();
+//    uart_set_hw_flow(UART_ID, false, false);
+//    // Set our data format
+//    uart_set_format(UART_ID, DATA_BITS, STOP_BITS, PARITY);
+//    // Turn off FIFO's - we want to do this character by character
+//    uart_set_fifo_enabled(UART_ID, false);
+
+    char *forward = NULL;
+    sprintf(forward, "%i%i", 0x22, 50000);
+
 
     while (1) {
         printf("forward\n");
-//        TMC2209_moveAtVelocity(0);
         sleep_ms(1000);
-//        printf("backward\n");
-//        TMC2209_moveAtVelocity(-50000);
-//        sleep_ms(2000);
     }
 
     return 0;
 }
 
-//void _close(void) {
-//
-//}
-//void _lseek(void) {
-//
-//}
+
+void _close(void) {
+
+}
+
+void _lseek(void) {
+
+}
