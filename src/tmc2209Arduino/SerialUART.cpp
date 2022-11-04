@@ -22,15 +22,6 @@
 #include <hardware/uart.h>
 #include <hardware/gpio.h>
 
-// SerialEvent functions are weak, so when the user doesn't define them,
-// the linker just sets their address to 0 (which is checked below).
-// The Serialx_available is just a wrapper around Serialx.available(),
-// but we can refer to it weakly so we don't pull in the entire
-// HardwareSerial instance if the user doesn't also refer to it.
-extern void serialEvent1() __attribute__((weak));
-
-extern void serialEvent2() __attribute__((weak));
-
 template<size_t N>
 constexpr uint32_t __bitset(const int (&a)[N], size_t i = 0U) {
     return i < N ? (1L << a[i]) | __bitset(a, i + 1) : 0;
@@ -70,55 +61,55 @@ bool SerialUART::setTX(uint8_t pin) {
     return false;
 }
 
-bool SerialUART::setRTS(uint8_t pin) {
-    constexpr uint32_t valid[2] = {__bitset({3, 15, 19}) /* UART0 */,
-                                   __bitset({7, 11, 23, 27})  /* UART1 */
-    };
-    if ((!_running) && ((pin == UART_PIN_NOT_DEFINED) || ((1 << pin) & valid[uart_get_index(_uart)]))) {
-        _rts = pin;
-        return true;
-    }
+//bool SerialUART::setRTS(uint8_t pin) {
+//    constexpr uint32_t valid[2] = {__bitset({3, 15, 19}) /* UART0 */,
+//                                   __bitset({7, 11, 23, 27})  /* UART1 */
+//    };
+//    if ((!_running) && ((pin == UART_PIN_NOT_DEFINED) || ((1 << pin) & valid[uart_get_index(_uart)]))) {
+//        _rts = pin;
+//        return true;
+//    }
+//
+//    if (_running) {
+//        panic("FATAL: Attempting to set Serial%d.RTS while running", uart_get_index(_uart) + 1);
+//    } else {
+//        panic("FATAL: Attempting to set Serial%d.RTS to illegal pin %d", uart_get_index(_uart) + 1, pin);
+//    }
+//    return false;
+//}
 
-    if (_running) {
-        panic("FATAL: Attempting to set Serial%d.RTS while running", uart_get_index(_uart) + 1);
-    } else {
-        panic("FATAL: Attempting to set Serial%d.RTS to illegal pin %d", uart_get_index(_uart) + 1, pin);
-    }
-    return false;
-}
+//bool SerialUART::setCTS(uint8_t pin) {
+//    constexpr uint32_t valid[2] = {__bitset({2, 14, 18}) /* UART0 */,
+//                                   __bitset({6, 10, 22, 26})  /* UART1 */
+//    };
+//    if ((!_running) && ((pin == UART_PIN_NOT_DEFINED) || ((1 << pin) & valid[uart_get_index(_uart)]))) {
+//        _cts = pin;
+//        return true;
+//    }
+//
+//    if (_running) {
+//        panic("FATAL: Attempting to set Serial%d.CTS while running", uart_get_index(_uart) + 1);
+//    } else {
+//        panic("FATAL: Attempting to set Serial%d.CTS to illegal pin %d", uart_get_index(_uart) + 1, pin);
+//    }
+//    return false;
+//}
 
-bool SerialUART::setCTS(uint8_t pin) {
-    constexpr uint32_t valid[2] = {__bitset({2, 14, 18}) /* UART0 */,
-                                   __bitset({6, 10, 22, 26})  /* UART1 */
-    };
-    if ((!_running) && ((pin == UART_PIN_NOT_DEFINED) || ((1 << pin) & valid[uart_get_index(_uart)]))) {
-        _cts = pin;
-        return true;
-    }
+//bool SerialUART::setPollingMode(bool mode) {
+//    if (_running) {
+//        return false;
+//    }
+//    _polling = mode;
+//    return true;
+//}
 
-    if (_running) {
-        panic("FATAL: Attempting to set Serial%d.CTS while running", uart_get_index(_uart) + 1);
-    } else {
-        panic("FATAL: Attempting to set Serial%d.CTS to illegal pin %d", uart_get_index(_uart) + 1, pin);
-    }
-    return false;
-}
-
-bool SerialUART::setPollingMode(bool mode) {
-    if (_running) {
-        return false;
-    }
-    _polling = mode;
-    return true;
-}
-
-bool SerialUART::setFIFOSize(size_t size) {
-    if (!size || _running) {
-        return false;
-    }
-    _fifoSize = size + 1; // Always 1 unused entry
-    return true;
-}
+//bool SerialUART::setFIFOSize(size_t size) {
+//    if (!size || _running) {
+//        return false;
+//    }
+//    _fifoSize = size + 1; // Always 1 unused entry
+//    return true;
+//}
 
 SerialUART::SerialUART(uart_inst_t *uart, uint8_t tx, uint8_t rx, uint8_t rts, uint8_t cts) {
     _uart = uart;
@@ -243,17 +234,17 @@ void SerialUART::_pumpFIFO() {
     irq_set_enabled(irqno, enabled);
 }
 
-int SerialUART::peek() {
-    if (_polling) {
-        _handleIRQ(false);
-    } else {
-        _pumpFIFO();
-    }
-    if (_writer != _reader) {
-        return _queue[_reader];
-    }
-    return -1;
-}
+//int SerialUART::peek() {
+//    if (_polling) {
+//        _handleIRQ(false);
+//    } else {
+//        _pumpFIFO();
+//    }
+//    if (_writer != _reader) {
+//        return _queue[_reader];
+//    }
+//    return -1;
+//}
 
 int SerialUART::read() {
     if (_polling) {
@@ -287,19 +278,19 @@ int SerialUART::available() {
     return (_fifoSize + _writer - _reader) % _fifoSize;
 }
 
-int SerialUART::availableForWrite() {
-    if (_polling) {
-        _handleIRQ(false);
-    }
-    return (uart_is_writable(_uart)) ? 1 : 0;
-}
+//int SerialUART::availableForWrite() {
+//    if (_polling) {
+//        _handleIRQ(false);
+//    }
+//    return (uart_is_writable(_uart)) ? 1 : 0;
+//}
 
-void SerialUART::flush() {
-    if (_polling) {
-        _handleIRQ(false);
-    }
-    uart_tx_wait_blocking(_uart);
-}
+//void SerialUART::flush() {
+//    if (_polling) {
+//        _handleIRQ(false);
+//    }
+//    uart_tx_wait_blocking(_uart);
+//}
 
 size_t SerialUART::write(uint8_t c) {
     if (_polling) {
@@ -326,17 +317,17 @@ SerialUART::operator bool() {
     return _running;
 }
 
-void arduino::serialEvent1Run(void) {
-    if (serialEvent1 && Serial1.available()) {
-        serialEvent1();
-    }
-}
+//void arduino::serialEvent1Run(void) {
+//    if (serialEvent1 && Serial1.available()) {
+//        serialEvent1();
+//    }
+//}
 
-void arduino::serialEvent2Run(void) {
-    if (serialEvent2 && Serial2.available()) {
-        serialEvent2();
-    }
-}
+//void arduino::serialEvent2Run(void) {
+//    if (serialEvent2 && Serial2.available()) {
+//        serialEvent2();
+//    }
+//}
 
 // IRQ handler, called when FIFO > 1/8 full or when it had held unread data for >32 bit times
 void __not_in_flash_func(SerialUART::_handleIRQ)(bool inIRQ) {
@@ -379,18 +370,18 @@ SerialUART Serial2(__SERIAL2_DEVICE, PIN_SERIAL2_TX, PIN_SERIAL2_RX);
 #endif
 
 
-static void __not_in_flash_func(_uart0IRQ)() {
-    if (__SERIAL1_DEVICE == uart0) {
-        Serial1._handleIRQ();
-    } else {
-        Serial2._handleIRQ();
-    }
-}
+//static void __not_in_flash_func(_uart0IRQ)() {
+//    if (__SERIAL1_DEVICE == uart0) {
+//        Serial1._handleIRQ();
+//    } else {
+//        Serial2._handleIRQ();
+//    }
+//}
 
-static void __not_in_flash_func(_uart1IRQ)() {
-    if (__SERIAL2_DEVICE == uart1) {
-        Serial2._handleIRQ();
-    } else {
-        Serial1._handleIRQ();
-    }
-}
+//static void __not_in_flash_func(_uart1IRQ)() {
+//    if (__SERIAL2_DEVICE == uart1) {
+//        Serial2._handleIRQ();
+//    } else {
+//        Serial1._handleIRQ();
+//    }
+//}

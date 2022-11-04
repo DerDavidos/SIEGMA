@@ -67,9 +67,9 @@ public:
 
     bool setTX(uint8_t pin);
 
-    bool setRTS(uint8_t pin);
+//    bool setRTS(uint8_t pin);
 
-    bool setCTS(uint8_t pin);
+//    bool setCTS(uint8_t pin);
 
     bool setPinout(uint8_t tx, uint8_t rx) {
         bool ret = setRX(rx);
@@ -77,9 +77,9 @@ public:
         return ret;
     }
 
-    bool setFIFOSize(size_t size);
+//    bool setFIFOSize(size_t size);
 
-    bool setPollingMode(bool mode = true);
+//    bool setPollingMode(bool mode = true);
 
     void begin(unsigned long baud = 115200) {
         begin(baud, SERIAL_8N1);
@@ -89,15 +89,15 @@ public:
 
     void end();
 
-    virtual int peek();
+//    virtual int peek();
 
     virtual int read();
 
     virtual int available();
 
-    virtual int availableForWrite();
+//    virtual int availableForWrite();
 
-    virtual void flush();
+//    virtual void flush();
 
     virtual size_t write(uint8_t c);
 
@@ -132,8 +132,3 @@ private:
 extern SerialUART Serial1; // HW UART 0
 extern SerialUART Serial2; // HW UART 1
 
-namespace arduino {
-    extern void serialEvent1Run(void) __attribute__((weak));
-
-    extern void serialEvent2Run(void) __attribute__((weak));
-};
