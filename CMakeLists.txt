@@ -27,10 +27,9 @@ else ()
         include_directories(src)
         add_subdirectory(src/tmc2209Arduino)
 
-        add_executable(main src/main.c) # creates executable
+        add_executable(main src/main.cpp) # creates executable
         target_include_directories(main PUBLIC ${CMAKE_SOURCE_DIR}/src)
         target_link_libraries(main
-                lwIP
                 pico_stdlib
                 tmc2209Arduino_lib)
         make_to_output_file(main)

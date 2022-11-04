@@ -4,18 +4,30 @@
 // Authors:
 // Peter Polidoro peter@polidoro.io
 // ----------------------------------------------------------------------------
+
 #include <cstdint>
 #include "TMC2209.h"
+#include "SerialUART.h"
+
+extern "C" {
 #include "pico/time.h"
+}
 
 #ifndef constrain
-#define constrain(amt,low,high) ((amt)<(low)?(low):((amt)>(high)?(high):(amt)))
+#define constrain(amt, low, high) ((amt)<(low)?(low):((amt)>(high)?(high):(amt)))
 #endif
 
-long map(long x, long in_min, long in_max, long out_min, long out_max)
-{
+long map(long x, long in_min, long in_max, long out_min, long out_max) {
     return (x - in_min) * (out_max - out_min) / (in_max - in_min) + out_min;
 }
+// ----------------------------------------------------------------------------
+// TMC2209.cpp
+//
+// Authors:
+// Peter Polidoro peter@polidoro.io
+// ----------------------------------------------------------------------------
+#include "TMC2209.h"
+
 
 TMC2209::TMC2209() {
     blocking_ = true;
@@ -25,7 +37,7 @@ TMC2209::TMC2209() {
     cool_step_enabled_ = false;
 }
 
-void TMC2209::setup(HardwareSerial &serial,
+void TMC2209::setup(SerialUART &serial,
                     long serial_baud_rate,
                     SerialAddress serial_address) {
     blocking_ = false;
@@ -563,7 +575,7 @@ void TMC2209::useInternalSenseResistors() {
 }
 
 // private
-void TMC2209::setOperationModeToSerial(HardwareSerial &serial,
+void TMC2209::setOperationModeToSerial(SerialUART &serial,
                                        long serial_baud_rate,
                                        SerialAddress serial_address) {
     serial_ptr_ = &serial;
@@ -681,6 +693,7 @@ void TMC2209::sendDatagram(Datagram &datagram,
 
     for (uint8_t i = 0; i < datagram_size; ++i) {
         byte = (datagram.bytes >> (i * BITS_PER_BYTE)) & BYTE_MAX_VALUE;
+        // Serial.println(byte);
         serial_ptr_->write(byte);
     }
 
@@ -688,7 +701,7 @@ void TMC2209::sendDatagram(Datagram &datagram,
     uint32_t echo_delay = 0;
     while ((serial_ptr_->available() < datagram_size) and
            (echo_delay < ECHO_DELAY_MAX_MICROSECONDS)) {
-        sleep_ms(ECHO_DELAY_INC_MICROSECONDS);
+        sleep_us(ECHO_DELAY_INC_MICROSECONDS);
         echo_delay += ECHO_DELAY_INC_MICROSECONDS;
     }
 
@@ -734,7 +747,7 @@ uint32_t TMC2209::read(uint8_t register_address) {
     uint32_t reply_delay = 0;
     while ((serial_ptr_->available() < WRITE_READ_REPLY_DATAGRAM_SIZE) and
            (reply_delay < REPLY_DELAY_MAX_MICROSECONDS)) {
-        sleep_ms(REPLY_DELAY_INC_MICROSECONDS);
+        sleep_us(REPLY_DELAY_INC_MICROSECONDS);
         reply_delay += REPLY_DELAY_INC_MICROSECONDS;
     }
 
@@ -755,7 +768,7 @@ uint32_t TMC2209::read(uint8_t register_address) {
     // this unfortunate code was found to be necessary after testing on hardware
     uint32_t post_read_delay_repeat = POST_READ_DELAY_NUMERATOR / serial_baud_rate_;
     for (uint8_t i = 0; i < post_read_delay_repeat; ++i) {
-        sleep_ms(POST_READ_DELAY_INC_MICROSECONDS);
+        sleep_us(POST_READ_DELAY_INC_MICROSECONDS);
     }
     return reverseData(read_reply_datagram.data);
 }
