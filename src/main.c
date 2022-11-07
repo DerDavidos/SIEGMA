@@ -1,4 +1,4 @@
-#include <cstdio>
+#include <stdio.h>
 #include "pico/stdio.h"
 #include "pico/stdio_usb.h"
 #include "pico/time.h"
@@ -27,24 +27,28 @@ int main() {
     printf("Connected\n");
 
 
-    TMC2209 tmc;
-    tmc.setup(Serial1, SERIAL_BAUD_RATE);
-    printf("Setup: TMC2209 setup done.\n");
+    TMC2209_setup(SERIAL1, SERIAL_BAUD_RATE, SERIAL_ADDRESS_0);
+    TMC2209_setRunCurrent(100);
+    TMC2209_enable();
 
-    while (!tmc.isSetupAndCommunicating()) {
+    while (!TMC2209_isSetupAndCommunicating()) {
         printf("Setup: Stepper driver NOT setup and communicating!\n");
         sleep_ms(1000);
+        TMC2209_setup(SERIAL1, SERIAL_BAUD_RATE, SERIAL_ADDRESS_0);
     }
     printf("Setup: Stepper driver setup and communicating!\n");
 
-    tmc.setRunCurrent(100);
-
-    tmc.enable();
-
     while (1) {
-        tmc.moveAtVelocity(0);
+        while (!TMC2209_isSetupAndCommunicating()) {
+            printf("Stepper driver NOT setup and communicating!\n");
+            sleep_ms(1000);
+            TMC2209_setup(SERIAL1, SERIAL_BAUD_RATE, SERIAL_ADDRESS_0);
+            TMC2209_setRunCurrent(100);
+            TMC2209_enable();
+        }
+        TMC2209_moveAtVelocity(0);
         sleep_ms(1000);
-        tmc.moveAtVelocity(50000);
+        TMC2209_moveAtVelocity(50000);
         sleep_ms(1000);
     }
 

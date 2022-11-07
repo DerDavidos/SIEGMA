@@ -7,11 +7,8 @@
 
 #pragma once
 
-#include <cstdarg>
-#include <queue>
-#include <cstdint>
-#include <cstddef>
 #include "hardware/gpio.h"
+#include "hardware/uart.h"
 
 #define SERIAL_PARITY_EVEN   (0x1ul)
 #define SERIAL_PARITY_ODD    (0x2ul)
@@ -43,7 +40,7 @@
 #define UART_PIN_NOT_DEFINED      (255u)
 
 
-typedef struct SerialUART{
+typedef struct SerialUART_t {
 
     bool _running; // set to false by init
     uart_inst_t *_uart;
@@ -60,28 +57,22 @@ typedef struct SerialUART{
     uint8_t _fifoSize; // set to 32 by init
     uint8_t *_queue;
 
-}SerialUART;
+} SerialUART_t;
 
 
-bool SerialUART_setRX(uint8_t pin, SerialUART* self);
+bool SerialUART_setRX(uint8_t pin);
 
-bool SerialUART_setTX(uint8_t pin, SerialUART* self);
+bool SerialUART_setTX(uint8_t pin);
 
 //    bool setRTS(uint8_t pin);
 
 //    bool setCTS(uint8_t pin);
 
-bool SerialUART_setPinout(uint8_t tx, uint8_t rx) {
-    bool ret = SerialUART_setRX(rx);
-    ret &= SerialUART_setTX(tx);
-    return ret;
-}
-
-bool SerialUART_setPinout(uint8_t tx, uint8_t rx) {
-    bool ret = SerialUART_setRX(rx);
-    ret &= SerialUART_setTX(tx);
-    return ret;
-}
+//bool SerialUART_setPinout(uint8_t tx, uint8_t rx) {
+//    bool ret = SerialUART_setRX(rx);
+//    ret &= SerialUART_setTX(tx);
+//    return ret;
+//}
 
 //    bool setFIFOSize(size_t size);
 
@@ -92,29 +83,43 @@ bool SerialUART_setPinout(uint8_t tx, uint8_t rx) {
 
 void SerialUART_begin(unsigned long baud, uint16_t config);
 
-void SerialUART_end(SerialUART* self);
+void SerialUART_end();
 
 //    virtual int peek();
 
-int SerialUART_read(SerialUART* self);
+int SerialUART_read();
 
-int SerialUART_available(SerialUART* self);
+int SerialUART_available();
 
 //    virtual int availableForWrite();
 
 //    virtual void flush();
 
-// size_t SerialUART_write(uint8_t c);
+size_t SerialUART_write(uint8_t c);
 
-size_t SerialUART_write(const uint8_t *p, size_t len, SerialUART* self);
+//size_t SerialUART_write(const uint8_t *p, size_t len);
 
-bool SerialUART_overflow(SerialUART* self);
+bool SerialUART_overflow();
 
 
 // Not to be called by users, only from the IRQ handler.  In public so that the C-language IQR callback can access it
 void SerialUART_handleIRQ(bool inIRQ);
 
 // User space FIFO transfer
-void SerialUART_pumpFIFO(SerialUART* self);
+void SerialUART_pumpFIFO();
+
+SerialUART_t SerialUART(uart_inst_t *uart, uint8_t tx, uint8_t rx);
+
+#ifndef __SERIAL1_DEVICE
+#define __SERIAL1_DEVICE uart0
+#endif
+#ifndef __SERIAL2_DEVICE
+#define __SERIAL2_DEVICE uart1
+#endif
+
+#define SERIAL1 SerialUART(__SERIAL1_DEVICE, PIN_SERIAL1_TX, PIN_SERIAL1_RX)
+
+#define SERIAL2 SerialUART(__SERIAL2_DEVICE, PIN_SERIAL2_TX, PIN_SERIAL2_RX)
+
 
 #endif //C_ARDUINO_TO_C_SERIALUART_H

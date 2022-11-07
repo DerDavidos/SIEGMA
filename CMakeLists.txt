@@ -25,13 +25,15 @@ else ()
 
     if (TARGET tinyusb_device)
         include_directories(src)
-        add_subdirectory(src/tmc2209Arduino)
+#        add_subdirectory(src/tmc2209Arduino)
+        add_subdirectory(src/tmc2209ArduinoC)
 
-        add_executable(main src/main.cpp) # creates executable
+        add_executable(main src/main.c) # creates executable
         target_include_directories(main PUBLIC ${CMAKE_SOURCE_DIR}/src)
         target_link_libraries(main
                 pico_stdlib
-                tmc2209Arduino_lib)
+#                tmc2209Arduino_lib
+                tmc2209ArduinoC_lib)
         make_to_output_file(main)
     elseif (PICO_ON_DEVICE)
         message(WARNING "not building Project because TinyUSB submodule is not initialized in the SDK")

@@ -22,44 +22,44 @@
 #include <hardware/uart.h>
 #include <hardware/gpio.h>
 
-template<size_t N>
-constexpr uint32_t __bitset(const int (&a)[N], size_t i = 0U) {
-    return i < N ? (1L << a[i]) | __bitset(a, i + 1) : 0;
-}
+//template<size_t N>
+//constexpr uint32_t __bitset(const int (&a)[N], size_t i = 0U) {
+//    return i < N ? (1L << a[i]) | __bitset(a, i + 1) : 0;
+//}
 
-bool SerialUART::setRX(uint8_t pin) {
-    constexpr uint32_t valid[2] = {__bitset({1, 13, 17, 29}) /* UART0 */,
-                                   __bitset({5, 9, 21, 25})  /* UART1 */
-    };
-    if ((!_running) && ((1 << pin) & valid[uart_get_index(_uart)])) {
-        _rx = pin;
-        return true;
-    }
+//bool SerialUART::setRX(uint8_t pin) {
+//    constexpr uint32_t valid[2] = {__bitset({1, 13, 17, 29}) /* UART0 */,
+//                                   __bitset({5, 9, 21, 25})  /* UART1 */
+//    };
+//    if ((!_running) && ((1 << pin) & valid[uart_get_index(_uart)])) {
+//        _rx = pin;
+//        return true;
+//    }
+//
+//    if (_running) {
+//        panic("FATAL: Attempting to set Serial%d.RX while running", uart_get_index(_uart) + 1);
+//    } else {
+//        panic("FATAL: Attempting to set Serial%d.RX to illegal pin %d", uart_get_index(_uart) + 1, pin);
+//    }
+//    return false;
+//}
 
-    if (_running) {
-        panic("FATAL: Attempting to set Serial%d.RX while running", uart_get_index(_uart) + 1);
-    } else {
-        panic("FATAL: Attempting to set Serial%d.RX to illegal pin %d", uart_get_index(_uart) + 1, pin);
-    }
-    return false;
-}
-
-bool SerialUART::setTX(uint8_t pin) {
-    constexpr uint32_t valid[2] = {__bitset({0, 12, 16, 28}) /* UART0 */,
-                                   __bitset({4, 8, 20, 24})  /* UART1 */
-    };
-    if ((!_running) && ((1 << pin) & valid[uart_get_index(_uart)])) {
-        _tx = pin;
-        return true;
-    }
-
-    if (_running) {
-        panic("FATAL: Attempting to set Serial%d.TX while running", uart_get_index(_uart) + 1);
-    } else {
-        panic("FATAL: Attempting to set Serial%d.TX to illegal pin %d", uart_get_index(_uart) + 1, pin);
-    }
-    return false;
-}
+//bool SerialUART::setTX(uint8_t pin) {
+//    constexpr uint32_t valid[2] = {__bitset({0, 12, 16, 28}) /* UART0 */,
+//                                   __bitset({4, 8, 20, 24})  /* UART1 */
+//    };
+//    if ((!_running) && ((1 << pin) & valid[uart_get_index(_uart)])) {
+//        _tx = pin;
+//        return true;
+//    }
+//
+//    if (_running) {
+//        panic("FATAL: Attempting to set Serial%d.TX while running", uart_get_index(_uart) + 1);
+//    } else {
+//        panic("FATAL: Attempting to set Serial%d.TX to illegal pin %d", uart_get_index(_uart) + 1, pin);
+//    }
+//    return false;
+//}
 
 //bool SerialUART::setRTS(uint8_t pin) {
 //    constexpr uint32_t valid[2] = {__bitset({3, 15, 19}) /* UART0 */,
@@ -370,18 +370,18 @@ SerialUART Serial2(__SERIAL2_DEVICE, PIN_SERIAL2_TX, PIN_SERIAL2_RX);
 #endif
 
 
-//static void __not_in_flash_func(_uart0IRQ)() {
-//    if (__SERIAL1_DEVICE == uart0) {
-//        Serial1._handleIRQ();
-//    } else {
-//        Serial2._handleIRQ();
-//    }
-//}
+static void __not_in_flash_func(_uart0IRQ)() {
+    if (__SERIAL1_DEVICE == uart0) {
+        Serial1._handleIRQ();
+    } else {
+        Serial2._handleIRQ();
+    }
+}
 
-//static void __not_in_flash_func(_uart1IRQ)() {
-//    if (__SERIAL2_DEVICE == uart1) {
-//        Serial2._handleIRQ();
-//    } else {
-//        Serial1._handleIRQ();
-//    }
-//}
+static void __not_in_flash_func(_uart1IRQ)() {
+    if (__SERIAL2_DEVICE == uart1) {
+        Serial2._handleIRQ();
+    } else {
+        Serial1._handleIRQ();
+    }
+}
