@@ -115,8 +115,8 @@ SerialUART::SerialUART(uart_inst_t *uart, uint8_t tx, uint8_t rx, uint8_t rts, u
     _uart = uart;
     _tx = tx;
     _rx = rx;
-    _rts = rts;
-    _cts = cts;
+    _rts = UART_PIN_NOT_DEFINED;
+    _cts = UART_PIN_NOT_DEFINED;
 }
 
 static void _uart0IRQ();

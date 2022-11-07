@@ -47,7 +47,7 @@ typedef struct SerialUART_t {
     uint8_t _tx, _rx;
     uint8_t _rts, _cts;
     enum gpio_function _fcnTx, _fcnRx, _fcnRts, _fcnCts;
-    int _baud;
+    unsigned long _baud;
     bool _polling;  // set to false by init
     bool _overflow;
 
@@ -89,7 +89,7 @@ void SerialUART_end();
 
 int SerialUART_read();
 
-int SerialUART_available();
+uint8_t SerialUART_available();
 
 //    virtual int availableForWrite();
 

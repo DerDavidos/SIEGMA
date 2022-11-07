@@ -29,8 +29,8 @@ SerialUART_t SerialUART(uart_inst_t *uart, uint8_t tx, uint8_t rx) {
     sUART._uart = uart;
     sUART._tx = tx;
     sUART._rx = rx;
-    sUART._rts = UART_PIN_NOT_DEFINED;
-    sUART._cts = UART_PIN_NOT_DEFINED;
+    sUART._rts = rx;
+    sUART._cts = tx;
     sUART._running = false;
     sUART._polling = false;
     sUART._fifoSize = 32;
@@ -157,12 +157,12 @@ int SerialUART_read() {
     if (sUART._polling) {
         SerialUART_handleIRQ(false);
     } else {
-        SerialUART_pumpFIFO(sUART);
+        SerialUART_pumpFIFO();
     }
     if (sUART._writer != sUART._reader) {
         int ret = sUART._queue[sUART._reader];
         // asm volatile("":: : "memory"); // Ensure the value is read before advancing
-        int next_reader = (sUART._reader + 1) % sUART._fifoSize;
+        uint8_t next_reader = (sUART._reader + 1) % sUART._fifoSize;
         // asm volatile("":: : "memory"); // Ensure the reader value is only written once, correctly
         sUART._reader = next_reader;
         return ret;
@@ -176,11 +176,11 @@ bool SerialUART_overflow() {
     return hold;
 }
 
-int SerialUART_available() {
+uint8_t SerialUART_available() {
     if (sUART._polling) {
         SerialUART_handleIRQ(false);
     } else {
-        SerialUART_pumpFIFO(sUART);
+        SerialUART_pumpFIFO();
     }
     return (sUART._fifoSize + sUART._writer - sUART._reader) % sUART._fifoSize;
 }
@@ -193,12 +193,12 @@ size_t SerialUART_write(uint8_t c) {
     return 1;
 }
 
-void SerialUART_handleIRQ(bool inIRQ) {
+void __not_in_flash_func(SerialUART_handleIRQ)(bool inIRQ) {
     // ICR is write-to-clear
     uart_get_hw(sUART._uart)->icr = UART_UARTICR_RTIC_BITS | UART_UARTICR_RXIC_BITS;
     while (uart_is_readable(sUART._uart)) {
         int val = uart_getc(sUART._uart);
-        int next_writer = sUART._writer + 1;
+        uint8_t next_writer = sUART._writer + 1;
         if (next_writer == sUART._fifoSize) {
             next_writer = 0;
         }
