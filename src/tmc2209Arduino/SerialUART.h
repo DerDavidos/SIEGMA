@@ -59,23 +59,22 @@ extern "C" typedef struct uart_inst uart_inst_t;
 
 class SerialUART {
 public:
-    SerialUART(uart_inst_t *uart, uint8_t tx, uint8_t rx, uint8_t rts = UART_PIN_NOT_DEFINED,
-               uint8_t cts = UART_PIN_NOT_DEFINED);
+    SerialUART(uart_inst_t *uart, uint8_t tx, uint8_t rx);
 
     // Select the pinout.  Call before .begin()
-    bool setRX(uint8_t pin);
+//    bool setRX(uint8_t pin);
 
-    bool setTX(uint8_t pin);
+//    bool setTX(uint8_t pin);
 
 //    bool setRTS(uint8_t pin);
 
 //    bool setCTS(uint8_t pin);
 
-    bool setPinout(uint8_t tx, uint8_t rx) {
-        bool ret = setRX(rx);
-        ret &= setTX(tx);
-        return ret;
-    }
+//    bool setPinout(uint8_t tx, uint8_t rx) {
+//        bool ret = setRX(rx);
+//        ret &= setTX(tx);
+//        return ret;
+//    }
 
 //    bool setFIFOSize(size_t size);
 
@@ -101,11 +100,11 @@ public:
 
     virtual size_t write(uint8_t c);
 
-    virtual size_t write(const uint8_t *p, size_t len);
+//    virtual size_t write(const uint8_t *p, size_t len);
 
     bool overflow();
 
-    operator bool();
+//    operator bool();
 
     // Not to be called by users, only from the IRQ handler.  In public so that the C-language IQR callback can access it
     void _handleIRQ(bool inIRQ = true);
@@ -114,7 +113,7 @@ private:
     bool _running = false;
     uart_inst_t *_uart;
     uint8_t _tx, _rx;
-    uint8_t _rts, _cts;
+//    uint8_t _rts, _cts;
     enum gpio_function _fcnTx, _fcnRx, _fcnRts, _fcnCts;
     int _baud;
     bool _polling = false;

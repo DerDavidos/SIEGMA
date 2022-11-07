@@ -34,14 +34,18 @@ int main() {
     while (!tmc.isSetupAndCommunicating()) {
         printf("Setup: Stepper driver NOT setup and communicating!\n");
         sleep_ms(1000);
+        tmc.setup(Serial1, SERIAL_BAUD_RATE);
     }
     printf("Setup: Stepper driver setup and communicating!\n");
 
     tmc.setRunCurrent(100);
-
     tmc.enable();
 
     while (1) {
+        while (!tmc.isSetupAndCommunicating()) {
+            printf("Stepper driver NOT setup and communicating!\n");
+            sleep_ms(1000);
+        }
         tmc.moveAtVelocity(0);
         sleep_ms(1000);
         tmc.moveAtVelocity(50000);

@@ -34,11 +34,11 @@ public:
     bool isSetupAndCommunicating();
 
     // if driver is not communicating, check power and communication connections
-    bool isCommunicating();
+//    bool isCommunicating();
 
     // driver may be communicating but not setup if driver power is lost then
     // restored after setup so that defaults are loaded instead of setup options
-    bool isCommunicatingButNotSetup();
+//    bool isCommunicatingButNotSetup();
 
     // driver must be enabled before use it is disabled by default
     void enable();
@@ -47,26 +47,26 @@ public:
 
     // driver may also be disabled by the hardware enable input pin
     // this pin must be grounded or disconnected before driver may be enabled
-    bool disabledByInputPin();
+//    bool disabledByInputPin();
 
     // valid values = 1,2,4,8,...128,256, other values get rounded down
-    void setMicrostepsPerStep(uint16_t microsteps_per_step);
+//    void setMicrostepsPerStep(uint16_t microsteps_per_step);
 
     // valid values = 0-8, microsteps = 2^exponent, 0=1,1=2,2=4,...8=256
     // https://en.wikipedia.org/wiki/Power_of_two
-    void setMicrostepsPerStepPowerOfTwo(uint8_t exponent);
+//    void setMicrostepsPerStepPowerOfTwo(uint8_t exponent);
 
-    uint16_t getMicrostepsPerStep();
+//    uint16_t getMicrostepsPerStep();
 
     void setRunCurrent(uint8_t percent);
 
-    void setHoldCurrent(uint8_t percent);
+//    void setHoldCurrent(uint8_t percent);
 
-    void setHoldDelay(uint8_t percent);
+//    void setHoldDelay(uint8_t percent);
 
-    void setAllCurrentValues(uint8_t run_current_percent,
-                             uint8_t hold_current_percent,
-                             uint8_t hold_delay_percent);
+//    void setAllCurrentValues(uint8_t run_current_percent,
+//                             uint8_t hold_current_percent,
+//                             uint8_t hold_delay_percent);
 
     struct Settings {
         bool is_communicating;
@@ -91,7 +91,7 @@ public:
         bool internal_sense_resistors_enabled;
     };
 
-    Settings getSettings();
+//    Settings getSettings();
 
     struct Status {
         uint32_t over_temperature_warning: 1;
@@ -112,101 +112,101 @@ public:
         uint32_t stealth_chop_mode: 1;
         uint32_t standstill: 1;
     };
-    const static uint8_t CURRENT_SCALING_MAX = 31;
+//    const static uint8_t CURRENT_SCALING_MAX = 31;
 
-    Status getStatus();
+//    Status getStatus();
 
-    void enableInverseMotorDirection();
+//    void enableInverseMotorDirection();
 
-    void disableInverseMotorDirection();
+//    void disableInverseMotorDirection();
 
-    enum StandstillMode {
-        NORMAL = 0,
-        FREEWHEELING = 1,
-        STRONG_BRAKING = 2,
-        BRAKING = 3,
-    };
+//    enum StandstillMode {
+//        NORMAL = 0,
+//        FREEWHEELING = 1,
+//        STRONG_BRAKING = 2,
+//        BRAKING = 3,
+//    };
 
-    void setStandstillMode(StandstillMode mode);
+//    void setStandstillMode(StandstillMode mode);
 
-    void enableAutomaticCurrentScaling();
+//    void enableAutomaticCurrentScaling();
 
     void disableAutomaticCurrentScaling();
 
-    void enableAutomaticGradientAdaptation();
+//    void enableAutomaticGradientAdaptation();
 
     void disableAutomaticGradientAdaptation();
 
-    void setPwmOffset(uint8_t pwm_amplitude);
+//    void setPwmOffset(uint8_t pwm_amplitude);
 
-    void setPwmGradient(uint8_t pwm_amplitude);
+//    void setPwmGradient(uint8_t pwm_amplitude);
 
     // default = 20
     // mimimum of 2 for StealthChop auto tuning
-    void setPowerDownDelay(uint8_t delay);
+//    void setPowerDownDelay(uint8_t delay);
 
-    uint8_t getInterfaceTransmissionCounter();
+//    uint8_t getInterfaceTransmissionCounter();
 
     void moveAtVelocity(int32_t microsteps_per_period);
-
-    void moveUsingStepDirInterface();
-
-    void enableStealthChop();
-
-    void disableStealthChop();
-
-    uint32_t getInterstepDuration();
-
-    void setStealthChopDurationThreshold(uint32_t duration_threshold);
-
-    uint16_t getStallGuardResult();
-
-    void setStallGuardThreshold(uint8_t stall_guard_threshold);
-
-    uint8_t getPwmScaleSum();
-
-    int16_t getPwmScaleAuto();
-
-    uint8_t getPwmOffsetAuto();
-
-    uint8_t getPwmGradientAuto();
+//
+//    void moveUsingStepDirInterface();
+//
+//    void enableStealthChop();
+//
+//    void disableStealthChop();
+//
+//    uint32_t getInterstepDuration();
+//
+//    void setStealthChopDurationThreshold(uint32_t duration_threshold);
+//
+//    uint16_t getStallGuardResult();
+//
+//    void setStallGuardThreshold(uint8_t stall_guard_threshold);
+//
+//    uint8_t getPwmScaleSum();
+//
+//    int16_t getPwmScaleAuto();
+//
+//    uint8_t getPwmOffsetAuto();
+//
+//    uint8_t getPwmGradientAuto();
 
     // lower_threshold: min = 1, max = 15
     // upper_threshold: min = 0, max = 15, 0-2 recommended
-    void enableCoolStep(uint8_t lower_threshold = 1,
-                        uint8_t upper_threshold = 0);
+//    void enableCoolStep(uint8_t lower_threshold = 1,
+//                        uint8_t upper_threshold = 0);
 
-    void disableCoolStep();
+//    void disableCoolStep();
 
-    enum CurrentIncrement {
-        CURRENT_INCREMENT_1 = 0,
-        CURRENT_INCREMENT_2 = 1,
-        CURRENT_INCREMENT_4 = 2,
-        CURRENT_INCREMENT_8 = 3,
-    };
+//    enum CurrentIncrement {
+//        CURRENT_INCREMENT_1 = 0,
+//        CURRENT_INCREMENT_2 = 1,
+//        CURRENT_INCREMENT_4 = 2,
+//        CURRENT_INCREMENT_8 = 3,
+//    };
 
-    void setCoolStepCurrentIncrement(CurrentIncrement current_increment);
+//    void setCoolStepCurrentIncrement(CurrentIncrement current_increment);
 
-    enum MeasurementCount {
-        MEASUREMENT_COUNT_32 = 0,
-        MEASUREMENT_COUNT_8 = 1,
-        MEASUREMENT_COUNT_2 = 2,
-        MEASUREMENT_COUNT_1 = 3,
-    };
+//    enum MeasurementCount {
+//        MEASUREMENT_COUNT_32 = 0,
+//        MEASUREMENT_COUNT_8 = 1,
+//        MEASUREMENT_COUNT_2 = 2,
+//        MEASUREMENT_COUNT_1 = 3,
+//    };
 
-    void setCoolStepMeasurementCount(MeasurementCount measurement_count);
-
-    void setCoolStepDurationThreshold(uint32_t duration_threshold);
-
-    uint16_t getMicrostepCounter();
-
-    void enableAnalogCurrentScaling();
-
-    void disableAnalogCurrentScaling();
-
-    void useExternalSenseResistors();
-
-    void useInternalSenseResistors();
+//    void setCoolStepMeasurementCount(MeasurementCount measurement_count);
+//
+//    void setCoolStepDurationThreshold(uint32_t duration_threshold);
+//
+//    uint16_t getMicrostepCounter();
+//
+//    void enableAnalogCurrentScaling();
+//
+//    void disableAnalogCurrentScaling();
+//
+//    void useExternalSenseResistors();
+//
+//    void useInternalSenseResistors();
 
 private:
     bool blocking_;
@@ -472,26 +472,26 @@ private:
     const static uint8_t PWM_GRAD_MAX = 255;
     const static uint8_t PWM_GRAD_DEFAULT = 0x14;
 
-    union PwmScale {
-        struct {
-            uint32_t pwm_scale_sum: 8;
-            uint32_t reserved_0: 8;
-            uint32_t pwm_scale_auto: 9;
-            uint32_t reserved_1: 7;
-        };
-        uint32_t bytes;
-    };
-    const static uint8_t ADDRESS_PWM_SCALE = 0x71;
+//    union PwmScale {
+//        struct {
+//            uint32_t pwm_scale_sum: 8;
+//            uint32_t reserved_0: 8;
+//            uint32_t pwm_scale_auto: 9;
+//            uint32_t reserved_1: 7;
+//        };
+//        uint32_t bytes;
+//    };
+//    const static uint8_t ADDRESS_PWM_SCALE = 0x71;
 
-    union PwmAuto {
-        struct {
-            uint32_t pwm_offset_auto: 8;
-            uint32_t reserved_0: 8;
-            uint32_t pwm_gradient_auto: 8;
-            uint32_t reserved_1: 8;
-        };
-        uint32_t bytes;
-    };
+//    union PwmAuto {
+//        struct {
+//            uint32_t pwm_offset_auto: 8;
+//            uint32_t reserved_0: 8;
+//            uint32_t pwm_gradient_auto: 8;
+//            uint32_t reserved_1: 8;
+//        };
+//        uint32_t bytes;
+//    };
     const static uint8_t ADDRESS_PWM_AUTO = 0x72;
 
     void setOperationModeToSerial(SerialUART &serial,
@@ -502,7 +502,7 @@ private:
 
     void readAndStoreRegisters();
 
-    uint8_t getVersion();
+//    uint8_t getVersion();
 
     bool serialOperationMode();
 
@@ -525,15 +525,15 @@ private:
 
     uint8_t percentToCurrentSetting(uint8_t percent);
 
-    uint8_t currentSettingToPercent(uint8_t current_setting);
-
-    uint8_t percentToHoldDelaySetting(uint8_t percent);
-
-    uint8_t holdDelaySettingToPercent(uint8_t hold_delay_setting);
-
-    uint8_t pwmAmplitudeToPwmAmpl(uint8_t pwm_amplitude);
-
-    uint8_t pwmAmplitudeToPwmGrad(uint8_t pwm_amplitude);
+//    uint8_t currentSettingToPercent(uint8_t current_setting);
+//
+//    uint8_t percentToHoldDelaySetting(uint8_t percent);
+//
+//    uint8_t holdDelaySettingToPercent(uint8_t hold_delay_setting);
+//
+//    uint8_t pwmAmplitudeToPwmAmpl(uint8_t pwm_amplitude);
+//
+//    uint8_t pwmAmplitudeToPwmGrad(uint8_t pwm_amplitude);
 
     void writeStoredGlobalConfig();
 
