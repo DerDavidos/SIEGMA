@@ -1,32 +1,8 @@
-/*
-    Serial-over-UART for the Raspberry Pi Pico RP2040
-
-    Copyright (c) 2021 Earle F. Philhower, III <earlephilhower@yahoo.com>
-
-    This library is free software; you can redistribute it and/or
-    modify it under the terms of the GNU Lesser General Public
-    License as published by the Free Software Foundation; either
-    version 2.1 of the License, or (at your option) any later version.
-
-    This library is distributed in the hope that it will be useful,
-    but WITHOUT ANY WARRANTY; without even the implied warranty of
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-    Lesser General Public License for more details.
-
-    You should have received a copy of the GNU Lesser General Public
-    License along with this library; if not, write to the Free Software
-    Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
-*/
-
 #ifndef C_ARDUINO_TO_C_SERIALUART_H
 #define C_ARDUINO_TO_C_SERIALUART_H
 
-//#pragma once
+#pragma once
 
-//#include <cstdarg>
-//#include <queue>
-//#include <cstdint>
-//#include <cstddef>
 #include "hardware/gpio.h"
 #include "hardware/uart.h"
 
@@ -57,30 +33,46 @@
 #define PIN_SERIAL2_TX      (4u)
 #define PIN_SERIAL2_RX      (5u)
 
-
 #define UART_PIN_NOT_DEFINED      (255u)
 
-void SerialUART(uart_inst_t *uart, uint8_t tx, uint8_t rx);
+typedef struct SerialUART_t {
+    bool _running; // set to false by init
+    uart_inst_t *_uart;
+    uint8_t _tx, _rx;
+    uint8_t _rts, _cts;
+    enum gpio_function _fcnTx, _fcnRx, _fcnRts, _fcnCts;
+    unsigned long _baud;
+    bool _polling;  // set to false by init
+    bool _overflow;
 
-void begin(unsigned long baud);
+    // Lockless, IRQ-handled circular queue
+    uint32_t _writer;
+    uint32_t _reader;
+    uint8_t _fifoSize; // set to 32 by init
+    uint8_t *_queue;
 
-void end();
+} SerialUART_t;
+
+void SerialUART_begin(unsigned long baud, uint16_t config);
+
+void SerialUART_end();
 
 int SerialUART_read();
 
-int available();
+uint8_t SerialUART_available();
 
 size_t SerialUART_write(uint8_t c);
 
-bool overflow();
-
 // Not to be called by users, only from the IRQ handler.  In public so that the C-language IQR callback can access it
-void _handleIRQ(bool inIRQ);
+void SerialUART_handleIRQ(bool inIRQ);
 
-void _pumpFIFO(); // User space FIFO transfer
+// User space FIFO transfer
+void SerialUART_pumpFIFO();
 
+SerialUART_t SerialUART(uart_inst_t *uart, uint8_t tx, uint8_t rx);
 
-//extern SerialUART Serial1; // HW UART 0
-//extern SerialUART Serial2; // HW UART 1
+#define SERIAL1 SerialUART(uart0, PIN_SERIAL1_TX, PIN_SERIAL1_RX)
+
+#define SERIAL2 SerialUART(uart1, PIN_SERIAL2_TX, PIN_SERIAL2_RX)
 
 #endif //C_ARDUINO_TO_C_SERIALUART_H
