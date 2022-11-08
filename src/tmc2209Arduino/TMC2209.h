@@ -8,8 +8,7 @@
 #ifndef TMC2209_H
 #define TMC2209_H
 
-#include "SerialUART.h"
-
+#include <cstddef>
 
 class TMC2209 {
 public:
@@ -26,8 +25,7 @@ public:
     // e.g. Serial1, Serial2...
     // optionally identify which serial address is assigned to the TMC2209 if not
     // the default of SERIAL_ADDRESS_0
-    void setup(SerialUART &serial,
-               long serial_baud_rate = 115200,
+    void setup(long serial_baud_rate = 115200,
                SerialAddress serial_address = SERIAL_ADDRESS_0);
 
     // check to make sure TMC2209 is properly setup and communicating
@@ -210,7 +208,7 @@ public:
 
 private:
     bool blocking_;
-    SerialUART *serial_ptr_;
+//    SerialUART *serial_ptr_;
     uint32_t serial_baud_rate_;
     uint8_t serial_address_;
 
@@ -494,8 +492,7 @@ private:
 //    };
     const static uint8_t ADDRESS_PWM_AUTO = 0x72;
 
-    void setOperationModeToSerial(SerialUART &serial,
-                                  long serial_baud_rate,
+    void setOperationModeToSerial(long serial_baud_rate,
                                   SerialAddress serial_address = SERIAL_ADDRESS_0);
 
     void setRegistersToDefaults();

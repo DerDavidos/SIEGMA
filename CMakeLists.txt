@@ -26,11 +26,13 @@ else ()
     if (TARGET tinyusb_device)
         include_directories(src)
         add_subdirectory(src/tmc2209Arduino)
+        add_subdirectory(src/SerialUART)
 
         add_executable(main src/main.cpp) # creates executable
         target_include_directories(main PUBLIC ${CMAKE_SOURCE_DIR}/src)
         target_link_libraries(main
                 pico_stdlib
+                serialUART_lib
                 tmc2209Arduino_lib)
         make_to_output_file(main)
     elseif (PICO_ON_DEVICE)

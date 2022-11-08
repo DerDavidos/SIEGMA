@@ -18,13 +18,17 @@
     Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 */
 
-#pragma once
+#ifndef C_ARDUINO_TO_C_SERIALUART_H
+#define C_ARDUINO_TO_C_SERIALUART_H
 
-#include <cstdarg>
-#include <queue>
-#include <cstdint>
-#include <cstddef>
+//#pragma once
+
+//#include <cstdarg>
+//#include <queue>
+//#include <cstdint>
+//#include <cstddef>
 #include "hardware/gpio.h"
+#include "hardware/uart.h"
 
 #define SERIAL_PARITY_EVEN   (0x1ul)
 #define SERIAL_PARITY_ODD    (0x2ul)
@@ -53,81 +57,30 @@
 #define PIN_SERIAL2_TX      (4u)
 #define PIN_SERIAL2_RX      (5u)
 
-extern "C" typedef struct uart_inst uart_inst_t;
 
 #define UART_PIN_NOT_DEFINED      (255u)
 
-class SerialUART {
-public:
-    SerialUART(uart_inst_t *uart, uint8_t tx, uint8_t rx);
+void SerialUART(uart_inst_t *uart, uint8_t tx, uint8_t rx);
 
-    // Select the pinout.  Call before .begin()
-//    bool setRX(uint8_t pin);
+void begin(unsigned long baud);
 
-//    bool setTX(uint8_t pin);
+void end();
 
-//    bool setRTS(uint8_t pin);
+int SerialUART_read();
 
-//    bool setCTS(uint8_t pin);
+int available();
 
-//    bool setPinout(uint8_t tx, uint8_t rx) {
-//        bool ret = setRX(rx);
-//        ret &= setTX(tx);
-//        return ret;
-//    }
+size_t SerialUART_write(uint8_t c);
 
-//    bool setFIFOSize(size_t size);
+bool overflow();
 
-//    bool setPollingMode(bool mode = true);
+// Not to be called by users, only from the IRQ handler.  In public so that the C-language IQR callback can access it
+void _handleIRQ(bool inIRQ);
 
-    void begin(unsigned long baud = 115200) {
-        begin(baud, SERIAL_8N1);
-    };
+void _pumpFIFO(); // User space FIFO transfer
 
-    void begin(unsigned long baud, uint16_t config);
 
-    void end();
+//extern SerialUART Serial1; // HW UART 0
+//extern SerialUART Serial2; // HW UART 1
 
-//    virtual int peek();
-
-    virtual int read();
-
-    virtual int available();
-
-//    virtual int availableForWrite();
-
-//    virtual void flush();
-
-    virtual size_t write(uint8_t c);
-
-//    virtual size_t write(const uint8_t *p, size_t len);
-
-    bool overflow();
-
-//    operator bool();
-
-    // Not to be called by users, only from the IRQ handler.  In public so that the C-language IQR callback can access it
-    void _handleIRQ(bool inIRQ = true);
-
-private:
-    bool _running = false;
-    uart_inst_t *_uart;
-    uint8_t _tx, _rx;
-//    uint8_t _rts, _cts;
-    enum gpio_function _fcnTx, _fcnRx, _fcnRts, _fcnCts;
-    int _baud;
-    bool _polling = false;
-    bool _overflow;
-
-    // Lockless, IRQ-handled circular queue
-    uint32_t _writer;
-    uint32_t _reader;
-    uint8_t _fifoSize = 32;
-    uint8_t *_queue;
-
-    void _pumpFIFO(); // User space FIFO transfer
-};
-
-extern SerialUART Serial1; // HW UART 0
-extern SerialUART Serial2; // HW UART 1
-
+#endif //C_ARDUINO_TO_C_SERIALUART_H

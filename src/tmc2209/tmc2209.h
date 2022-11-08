@@ -16,7 +16,7 @@ typedef enum SerialAddress {
     SERIAL_ADDRESS_1 = 1,
     SERIAL_ADDRESS_2 = 2,
     SERIAL_ADDRESS_3 = 3,
-} SerialAddress;
+} SerialAddress_t;
 
 // identify which microcontroller serial port is connected to the TMC2209
 // e.g. Serial1, Serial2...
