@@ -21,7 +21,7 @@ int main() {
     stdio_init_all();
 
     // waits for usb connection, REMOVE to continue without waiting for connection
-    while ((!stdio_usb_connected()));
+//    while ((!stdio_usb_connected()));
 
     sleep_ms(100);
     printf("Connected\n");

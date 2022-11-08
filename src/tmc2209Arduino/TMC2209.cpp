@@ -658,9 +658,8 @@ uint32_t TMC2209::reverseData(uint32_t data) {
     return reversed_data;
 }
 
-template<typename Datagram>
-uint8_t TMC2209::calculateCrc(Datagram &datagram,
-                              uint8_t datagram_size) {
+uint8_t TMC2209::calculateCrcRead(ReadRequestDatagram &datagram,
+                                  uint8_t datagram_size) {
     uint8_t crc = 0;
     uint8_t byte;
     for (uint8_t i = 0; i < (datagram_size - 1); ++i) {
@@ -677,9 +676,64 @@ uint8_t TMC2209::calculateCrc(Datagram &datagram,
     return crc;
 }
 
-template<typename Datagram>
-void TMC2209::sendDatagram(Datagram &datagram,
-                           uint8_t datagram_size) {
+uint8_t TMC2209::calculateCrcWrite(WriteReadReplyDatagram &datagram,
+                                   uint8_t datagram_size) {
+    uint8_t crc = 0;
+    uint8_t byte;
+    for (uint8_t i = 0; i < (datagram_size - 1); ++i) {
+        byte = (datagram.bytes >> (i * BITS_PER_BYTE)) & BYTE_MAX_VALUE;
+        for (uint8_t j = 0; j < BITS_PER_BYTE; ++j) {
+            if ((crc >> 7) ^ (byte & 0x01)) {
+                crc = (crc << 1) ^ 0x07;
+            } else {
+                crc = crc << 1;
+            }
+            byte = byte >> 1;
+        }
+    }
+    return crc;
+}
+
+void TMC2209::sendDatagramRead(ReadRequestDatagram &datagram,
+                               uint8_t datagram_size) {
+    if (not serial_ptr_) {
+        return;
+    }
+
+    uint8_t byte;
+
+    // clear the serial receive buffer if necessary
+    while (serial_ptr_->available() > 0) {
+        byte = serial_ptr_->read();
+    }
+
+    for (uint8_t i = 0; i < datagram_size; ++i) {
+        byte = (datagram.bytes >> (i * BITS_PER_BYTE)) & BYTE_MAX_VALUE;
+        // Serial.println(byte);
+        serial_ptr_->write(byte);
+    }
+
+    // wait for bytes sent out on TX line to be echoed on RX line
+    uint32_t echo_delay = 0;
+    while ((serial_ptr_->available() < datagram_size) and
+           (echo_delay < ECHO_DELAY_MAX_MICROSECONDS)) {
+        sleep_us(ECHO_DELAY_INC_MICROSECONDS);
+        echo_delay += ECHO_DELAY_INC_MICROSECONDS;
+    }
+
+    if (echo_delay >= ECHO_DELAY_MAX_MICROSECONDS) {
+        blocking_ = true;
+        return;
+    }
+
+    // clear RX buffer of echo bytes
+    for (uint8_t i = 0; i < datagram_size; ++i) {
+        byte = serial_ptr_->read();
+    }
+}
+
+void TMC2209::sendDatagramWrite(WriteReadReplyDatagram &datagram,
+                                uint8_t datagram_size) {
     if (not serial_ptr_) {
         return;
     }
@@ -725,9 +779,9 @@ void TMC2209::write(uint8_t register_address,
     write_datagram.register_address = register_address;
     write_datagram.rw = RW_WRITE;
     write_datagram.data = reverseData(data);
-    write_datagram.crc = calculateCrc(write_datagram, WRITE_READ_REPLY_DATAGRAM_SIZE);
+    write_datagram.crc = calculateCrcWrite(write_datagram, WRITE_READ_REPLY_DATAGRAM_SIZE);
 
-    sendDatagram(write_datagram, WRITE_READ_REPLY_DATAGRAM_SIZE);
+    sendDatagramWrite(write_datagram, WRITE_READ_REPLY_DATAGRAM_SIZE);
 }
 
 uint32_t TMC2209::read(uint8_t register_address) {
@@ -740,9 +794,9 @@ uint32_t TMC2209::read(uint8_t register_address) {
     read_request_datagram.serial_address = serial_address_;
     read_request_datagram.register_address = register_address;
     read_request_datagram.rw = RW_READ;
-    read_request_datagram.crc = calculateCrc(read_request_datagram, READ_REQUEST_DATAGRAM_SIZE);
+    read_request_datagram.crc = calculateCrcRead(read_request_datagram, READ_REQUEST_DATAGRAM_SIZE);
 
-    sendDatagram(read_request_datagram, READ_REQUEST_DATAGRAM_SIZE);
+    sendDatagramRead(read_request_datagram, READ_REQUEST_DATAGRAM_SIZE);
 
     uint32_t reply_delay = 0;
     while ((serial_ptr_->available() < WRITE_READ_REPLY_DATAGRAM_SIZE) and

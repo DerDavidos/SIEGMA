@@ -128,11 +128,11 @@ SerialUART::SerialUART(uart_inst_t *uart, uint8_t tx, uint8_t rx) {
 }
 
 static void __not_in_flash_func(_uart0IRQ)() {
-        Serial1._handleIRQ();
+    Serial1._handleIRQ();
 }
 
 static void __not_in_flash_func(_uart1IRQ)() {
-        Serial2._handleIRQ();
+    Serial2._handleIRQ();
 }
 
 void SerialUART::begin(unsigned long baud, uint16_t config) {

@@ -7,7 +7,7 @@
 
 #ifndef TMC2209_H
 #define TMC2209_H
-//#include <Arduino.h>
+
 #include "SerialUART.h"
 
 
@@ -510,13 +510,13 @@ private:
 
     uint32_t reverseData(uint32_t data);
 
-    template<typename Datagram>
-    uint8_t calculateCrc(Datagram &datagram,
-                         uint8_t datagram_size);
+    uint8_t calculateCrcRead(ReadRequestDatagram &datagram, uint8_t datagram_size);
 
-    template<typename Datagram>
-    void sendDatagram(Datagram &datagram,
-                      uint8_t datagram_size);
+    uint8_t calculateCrcWrite(WriteReadReplyDatagram &datagram, uint8_t datagram_size);
+
+    void sendDatagramRead(ReadRequestDatagram &datagram, uint8_t datagram_size);
+
+    void sendDatagramWrite(WriteReadReplyDatagram &datagram, uint8_t datagram_size);
 
     void write(uint8_t register_address,
                uint32_t data);
