@@ -37,17 +37,16 @@ SerialUART_t SerialUART(uart_inst_t *uart, uint8_t tx, uint8_t rx) {
     return sUART;
 }
 
-static void _uart0IRQ();
+static void SerialUART_uart0IRQ();
 
-static void _uart1IRQ();
+static void SerialUART_uart1IRQ();
 
 void SerialUART_begin(unsigned long baud, uint16_t config) {
     if (sUART._running) {
         SerialUART_end();
     }
     sUART._overflow = false;
-    uint8_t tmp[sUART._fifoSize];
-    sUART._queue = tmp;
+    sUART._queue = malloc(sUART._fifoSize);
     sUART._baud = baud;
     uart_init(sUART._uart, baud);
     int bits, stop;
@@ -104,10 +103,10 @@ void SerialUART_begin(unsigned long baud, uint16_t config) {
 
     if (!sUART._polling) {
         if (sUART._uart == uart0) {
-            irq_set_exclusive_handler(UART0_IRQ, _uart0IRQ);
+            irq_set_exclusive_handler(UART0_IRQ, SerialUART_uart0IRQ);
             irq_set_enabled(UART0_IRQ, true);
         } else {
-            irq_set_exclusive_handler(UART1_IRQ, _uart1IRQ);
+            irq_set_exclusive_handler(UART1_IRQ, SerialUART_uart1IRQ);
             irq_set_enabled(UART1_IRQ, true);
         }
         // Set the IRQ enables and FIFO level to minimum
@@ -213,12 +212,10 @@ void __not_in_flash_func(SerialUART_handleIRQ)(bool inIRQ) {
     }
 }
 
-static void __not_in_flash_func(_uart0IRQ)() {
+static void __not_in_flash_func(SerialUART_uart0IRQ)() {
     SerialUART_handleIRQ(true);
 }
 
-static void __not_in_flash_func(_uart1IRQ)() {
+static void __not_in_flash_func(SerialUART_uart1IRQ)() {
     SerialUART_handleIRQ(true);
 }
-
-

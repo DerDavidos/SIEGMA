@@ -1,16 +1,12 @@
 // ----------------------------------------------------------------------------
-// TMC2209.cpp
-//
 // Authors:
 // Peter Polidoro peter@polidoro.io
 // ----------------------------------------------------------------------------
 
-//#include <stdint>
-#include "TMC2209.h"
-#include "SerialUART.h"
-
 #include "pico/time.h"
 
+#include "TMC2209.h"
+#include "SerialUART.h"
 
 #ifndef constrain
 #define constrain(amt, low, high) ((amt)<(low)?(low):((amt)>(high)?(high):(amt)))
@@ -19,13 +15,6 @@
 long map(long x, long in_min, long in_max, long out_min, long out_max) {
     return (x - in_min) * (out_max - out_min) / (in_max - in_min) + out_min;
 }
-// ----------------------------------------------------------------------------
-// TMC2209.cpp
-//
-// Authors:
-// Peter Polidoro peter@polidoro.io
-// ----------------------------------------------------------------------------
-#include "TMC2209.h"
 
 bool blocking_;
 SerialUART_t *serial_ptr_;
