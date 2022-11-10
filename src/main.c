@@ -24,25 +24,45 @@ int main() {
     // waits for usb connection, REMOVE to continue without waiting for connection
 //    while ((!stdio_usb_connected()));
 
-    TMC2209_setup(SERIAL1, SERIAL_BAUD_RATE, SERIAL_ADDRESS_0);
-    TMC2209_setRunCurrent(100);
-    TMC2209_enable();
+    TMC2209_t tmc0 = TMC2209_getNew();
+    TMC2209_setup(tmc0, SERIAL1, SERIAL_BAUD_RATE, SERIAL_ADDRESS_0);
+    TMC2209_setRunCurrent(tmc0, 100);
+    TMC2209_enable(tmc0);
 
-    while (!TMC2209_isSetupAndCommunicating()) {
-        printf("Setup: Stepper driver NOT setup and communicating!\n");
+    while (!TMC2209_isSetupAndCommunicating(tmc0)) {
+        printf("Setup: Stepper driver 1 NOT setup and communicating!\n");
         sleep_ms(1000);
-        TMC2209_setup(SERIAL1, SERIAL_BAUD_RATE, SERIAL_ADDRESS_0);
+        TMC2209_setup(tmc0, SERIAL1, SERIAL_BAUD_RATE, SERIAL_ADDRESS_0);
     }
-    printf("Setup: Stepper driver setup and communicating!\n");
+    printf("Setup: Stepper driver 1 setup and communicating!\n");
+
+
+    TMC2209_t tmc1 = TMC2209_getNew();
+    TMC2209_setup(tmc1, SERIAL1, SERIAL_BAUD_RATE, SERIAL_ADDRESS_1);
+    TMC2209_setRunCurrent(tmc1, 100);
+    TMC2209_enable(tmc1);
+
+    while (!TMC2209_isSetupAndCommunicating(tmc1)) {
+        printf("Setup: Stepper driver 2 NOT setup and communicating!\n");
+        sleep_ms(1000);
+        TMC2209_setup(tmc1, SERIAL1, SERIAL_BAUD_RATE, SERIAL_ADDRESS_0);
+    }
+    printf("Setup: Stepper driver 2 setup and communicating!\n");
 
     while (1) {
-        while (!TMC2209_isSetupAndCommunicating()) {
-            printf("Stepper driver NOT setup and communicating!\n");
+        while (!TMC2209_isSetupAndCommunicating(tmc0)) {
+            printf("Stepper driver 1 NOT setup and communicating!\n");
             sleep_ms(1000);
         }
-        TMC2209_moveAtVelocity(0);
+        while (!TMC2209_isSetupAndCommunicating(tmc1)) {
+            printf("Stepper driver 2 NOT setup and communicating!\n");
+            sleep_ms(1000);
+        }
+        TMC2209_moveAtVelocity(tmc0, 0);
+        TMC2209_moveAtVelocity(tmc1, 50000);
         sleep_ms(1000);
-        TMC2209_moveAtVelocity(50000);
+        TMC2209_moveAtVelocity(tmc0, 50000);
+        TMC2209_moveAtVelocity(tmc1, 0);
         sleep_ms(1000);
     }
 
