@@ -22,27 +22,35 @@ int main() {
     stdio_init_all();
 
     // waits for usb connection, REMOVE to continue without waiting for connection
-//    while ((!stdio_usb_connected()));
+    while ((!stdio_usb_connected()));
 
-    TMC2209_setup(SERIAL1, SERIAL_BAUD_RATE, SERIAL_ADDRESS_0);
-    TMC2209_setRunCurrent(100);
-    TMC2209_enable();
+    sleep_ms(1000);
 
-    while (!TMC2209_isSetupAndCommunicating()) {
+    printf("Connected\n");
+
+
+    TMC2209_t tmc;
+    TMC2209_setup(&tmc, SERIAL1, SERIAL_BAUD_RATE, SERIAL_ADDRESS_0);
+
+    while (!TMC2209_isSetupAndCommunicating(&tmc)) {
         printf("Setup: Stepper driver NOT setup and communicating!\n");
         sleep_ms(1000);
-        TMC2209_setup(SERIAL1, SERIAL_BAUD_RATE, SERIAL_ADDRESS_0);
+        TMC2209_setup(&tmc, SERIAL1, SERIAL_BAUD_RATE, SERIAL_ADDRESS_0);
     }
     printf("Setup: Stepper driver setup and communicating!\n");
 
+    TMC2209_setRunCurrent(&tmc,100);
+    TMC2209_enable(&tmc);
+
+
     while (1) {
-        while (!TMC2209_isSetupAndCommunicating()) {
+        while (!TMC2209_isSetupAndCommunicating(&tmc)) {
             printf("Stepper driver NOT setup and communicating!\n");
             sleep_ms(1000);
         }
-        TMC2209_moveAtVelocity(0);
+        TMC2209_moveAtVelocity(&tmc, 0);
         sleep_ms(1000);
-        TMC2209_moveAtVelocity(50000);
+        TMC2209_moveAtVelocity(&tmc, 50000);
         sleep_ms(1000);
     }
 
