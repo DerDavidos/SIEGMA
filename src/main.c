@@ -12,6 +12,20 @@
 
 #define SERIAL_BAUD_RATE 115200
 
+TMC2209_t setupTMC(TMC2209_t *tmc, SerialAddress_t address) {
+    TMC2209_setup(tmc, SERIAL1, SERIAL_BAUD_RATE, address);
+
+    while (!TMC2209_isSetupAndCommunicating(tmc)) {
+//        printf("Setup: Stepper driver with address %i NOT setup and communicating!\n", address);
+        sleep_ms(1000);
+        TMC2209_setup(tmc, SERIAL1, SERIAL_BAUD_RATE, address);
+    }
+//    printf("Setup: Stepper driver with address %i setup and communicating!\n", address);
+    TMC2209_setRunCurrent(tmc, 100);
+    TMC2209_enable(tmc);
+    return (*tmc);
+}
+
 int main() {
 
     if (watchdog_enable_caused_reboot()) {
@@ -20,38 +34,46 @@ int main() {
 
     // init usb
     stdio_init_all();
-
-    // waits for usb connection, REMOVE to continue without waiting for connection
-    while ((!stdio_usb_connected()));
-
+    // Time to make sure everything is ready
     sleep_ms(1000);
 
-    printf("Connected\n");
+    // waits for usb connection, REMOVE to continue without waiting for connection
+//    while ((!stdio_usb_connected()));
 
+    TMC2209_t tmc0;
+    tmc0 = setupTMC(&tmc0, SERIAL_ADDRESS_0);
 
-    TMC2209_t tmc;
-    TMC2209_setup(&tmc, SERIAL1, SERIAL_BAUD_RATE, SERIAL_ADDRESS_0);
-
-    while (!TMC2209_isSetupAndCommunicating(&tmc)) {
-        printf("Setup: Stepper driver NOT setup and communicating!\n");
-        sleep_ms(1000);
-        TMC2209_setup(&tmc, SERIAL1, SERIAL_BAUD_RATE, SERIAL_ADDRESS_0);
-    }
-    printf("Setup: Stepper driver setup and communicating!\n");
-
-    TMC2209_setRunCurrent(&tmc,100);
-    TMC2209_enable(&tmc);
-
+    TMC2209_t tmc1;
+    tmc1 = setupTMC(&tmc1, SERIAL_ADDRESS_1);
 
     while (1) {
-        while (!TMC2209_isSetupAndCommunicating(&tmc)) {
-            printf("Stepper driver NOT setup and communicating!\n");
-            sleep_ms(1000);
+//        if (!TMC2209_isSetupAndCommunicating(&tmc0))
+//            printf("Setup: Stepper driver with address %i NOT setup and communicating!\n", 0);
+//        if (!TMC2209_isSetupAndCommunicating(&tmc1))
+//            printf("Setup: Stepper driver with address %i NOT setup and communicating!\n", 1);
+//        if (TMC2209_disabledByInputPin(&tmc0))
+//            printf("Setup: Stepper driver with address %i DISABLED by input bin!\n", 0);
+//        if (TMC2209_disabledByInputPin(&tmc1))
+//            printf("Setup: Stepper driver with address %i DISABLED by input bin!\n", 1);
+
+        char input = getchar_timeout_us(10000000); /* 10 seconds wait */
+
+        switch (input) {
+            case '1':
+                TMC2209_moveAtVelocity(&tmc0, 0);
+                break;
+            case '2':
+                TMC2209_moveAtVelocity(&tmc0, 50000);
+                break;
+            case '3':
+                TMC2209_moveAtVelocity(&tmc1, 0);
+                break;
+            case '4':
+                TMC2209_moveAtVelocity(&tmc1, 50000);
+                break;
+            default:
+                break;
         }
-        TMC2209_moveAtVelocity(&tmc, 0);
-        sleep_ms(1000);
-        TMC2209_moveAtVelocity(&tmc, 50000);
-        sleep_ms(1000);
     }
 
     return 0;

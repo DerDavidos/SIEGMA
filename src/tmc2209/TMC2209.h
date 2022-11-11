@@ -4,7 +4,6 @@
 // Peter Polidoro peter@polidoro.io
 // ----------------------------------------------------------------------------
 
-
 #ifndef TMC2209_H
 #define TMC2209_H
 
@@ -16,7 +15,6 @@ typedef enum SerialAddress {
     SERIAL_ADDRESS_2 = 2,
     SERIAL_ADDRESS_3 = 3,
 } SerialAddress_t;
-
 
 typedef struct Settings {
     bool is_communicating;
@@ -41,8 +39,6 @@ typedef struct Settings {
     bool internal_sense_resistors_enabled;
 } TMC2209_Settings_t;
 
-
-
 typedef struct Status {
     uint32_t over_temperature_warning: 1;
     uint32_t over_temperature_shutdown: 1;
@@ -64,14 +60,12 @@ typedef struct Status {
 } Status_t;
 const static uint8_t CURRENT_SCALING_MAX = 31;
 
-
 typedef enum StandstillMode {
     NORMAL = 0,
     FREEWHEELING = 1,
     STRONG_BRAKING = 2,
     BRAKING = 3,
 } TMC2209_StandstillMode_t;
-
 
 typedef enum CurrentIncrement {
     CURRENT_INCREMENT_1 = 0,
@@ -80,14 +74,12 @@ typedef enum CurrentIncrement {
     CURRENT_INCREMENT_8 = 3,
 } TMC2209_CurrentIncrement_t;
 
-
 typedef enum MeasurementCount {
     MEASUREMENT_COUNT_32 = 0,
     MEASUREMENT_COUNT_8 = 1,
     MEASUREMENT_COUNT_2 = 2,
     MEASUREMENT_COUNT_1 = 3,
 } TMC2209_MeasurementCount_t;
-
 
 // Serial Settings
 const static uint8_t BYTE_MAX_VALUE = 0xFF;
@@ -384,7 +376,8 @@ typedef struct TMC2209 {
 } TMC2209_t;
 
 
-void TMC2209_setOperationModeToSerial(TMC2209_t *tmc2209, SerialUART_t seral, long serial_baud_rate, SerialAddress_t serial_address);
+void TMC2209_setOperationModeToSerial(TMC2209_t *tmc2209, SerialUART_t seral, long serial_baud_rate,
+                                      SerialAddress_t serial_address);
 
 void TMC2209_setRegistersToDefaults(TMC2209_t *tmc2209);
 
@@ -404,11 +397,11 @@ void TMC2209_sendDatagramRead(TMC2209_t *tmc2209, TMC2209_ReadRequestDatagram_t 
 
 uint8_t TMC2209_calculateCrcWrite(TMC2209_WriteReadReplyDatagram_t datagram, uint8_t datagram_size);
 
-void TMC2209_sendDatagramWrite(TMC2209_t *tmc2209,TMC2209_WriteReadReplyDatagram_t datagram, uint8_t datagram_size);
+void TMC2209_sendDatagramWrite(TMC2209_t *tmc2209, TMC2209_WriteReadReplyDatagram_t datagram, uint8_t datagram_size);
 
-void TMC2209_write(TMC2209_t *tmc2209,uint8_t register_address, uint32_t data);
+void TMC2209_write(TMC2209_t *tmc2209, uint8_t register_address, uint32_t data);
 
-uint32_t TMC2209_read(TMC2209_t *tmc2209,uint8_t register_address);
+uint32_t TMC2209_read(TMC2209_t *tmc2209, uint8_t register_address);
 
 uint8_t TMC2209_percentToCurrentSetting(uint8_t percent);
 
@@ -418,9 +411,9 @@ uint8_t TMC2209_percentToHoldDelaySetting(uint8_t percent);
 
 uint8_t TMC2209_holdDelaySettingToPercent(uint8_t hold_delay_setting);
 
-uint8_t TMC2209_pwmAmplitudeToPwmAmpl(TMC2209_t *tmc2209,uint8_t pwm_amplitude);
+uint8_t TMC2209_pwmAmplitudeToPwmAmpl(TMC2209_t *tmc2209, uint8_t pwm_amplitude);
 
-uint8_t TMC2209_pwmAmplitudeToPwmGrad(TMC2209_t *tmc2209,uint8_t pwm_amplitude);
+uint8_t TMC2209_pwmAmplitudeToPwmGrad(TMC2209_t *tmc2209, uint8_t pwm_amplitude);
 
 void TMC2209_writeStoredGlobalConfig(TMC2209_t *tmc2209);
 
@@ -464,21 +457,22 @@ void TMC2209_disable(TMC2209_t *tmc2209);
 bool TMC2209_disabledByInputPin(TMC2209_t *tmc2209);
 
 // valid values = 1,2,4,8,...128,256, other values get rounded down
-void TMC2209_setMicrostepsPerStep(TMC2209_t *tmc2209,uint16_t microsteps_per_step);
+void TMC2209_setMicrostepsPerStep(TMC2209_t *tmc2209, uint16_t microsteps_per_step);
 
 // valid values = 0-8, microsteps = 2^exponent, 0=1,1=2,2=4,...8=256
 // https://en.wikipedia.org/wiki/Power_of_two
-void TMC2209_setMicrostepsPerStepPowerOfTwo(TMC2209_t *tmc2209,uint8_t exponent);
+void TMC2209_setMicrostepsPerStepPowerOfTwo(TMC2209_t *tmc2209, uint8_t exponent);
 
 uint16_t TMC2209_getMicrostepsPerStep(TMC2209_t *tmc2209);
 
-void TMC2209_setRunCurrent(TMC2209_t *tmc2209,uint8_t percent);
+void TMC2209_setRunCurrent(TMC2209_t *tmc2209, uint8_t percent);
 
-void TMC2209_setHoldCurrent(TMC2209_t *tmc2209,uint8_t percent);
+void TMC2209_setHoldCurrent(TMC2209_t *tmc2209, uint8_t percent);
 
-void TMC2209_setHoldDelay(TMC2209_t *tmc2209,uint8_t percent);
+void TMC2209_setHoldDelay(TMC2209_t *tmc2209, uint8_t percent);
 
-void TMC2209_setAllCurrentValues(TMC2209_t *tmc2209,uint8_t run_current_percent, uint8_t hold_current_percent, uint8_t hold_delay_percent);
+void TMC2209_setAllCurrentValues(TMC2209_t *tmc2209, uint8_t run_current_percent, uint8_t hold_current_percent,
+                                 uint8_t hold_delay_percent);
 
 Status_t TMC2209_getStatus(TMC2209_t *tmc2209);
 

@@ -678,16 +678,15 @@ uint8_t TMC2209_calculateCrcRead(TMC2209_ReadRequestDatagram_t datagram, uint8_t
     return crc;
 }
 
-
 void TMC2209_sendDatagramRead(TMC2209_t *tmc2209, TMC2209_ReadRequestDatagram_t datagram, uint8_t datagram_size) {
     if (!tmc2209->TMC2209_serial_ptr_) {
         return;
     }
     uint8_t byte;
 
-// clear the serial receive buffer if necessary
+    // clear the serial receive buffer if necessary
     while (SerialUART_available() > 0) {
-        byte = SerialUART_read();
+        SerialUART_read();
     }
 
     for (uint8_t i = 0; i < datagram_size; ++i) {
@@ -695,7 +694,7 @@ void TMC2209_sendDatagramRead(TMC2209_t *tmc2209, TMC2209_ReadRequestDatagram_t 
         SerialUART_write(byte);
     }
 
-// wait for bytes sent out on TX line to be echoed on RX line
+    // wait for bytes sent out on TX line to be echoed on RX line
     uint32_t echo_delay = 0;
     while ((SerialUART_available() < datagram_size) && (echo_delay < ECHO_DELAY_MAX_MICROSECONDS)) {
         sleep_us(ECHO_DELAY_INC_MICROSECONDS);
@@ -707,9 +706,9 @@ void TMC2209_sendDatagramRead(TMC2209_t *tmc2209, TMC2209_ReadRequestDatagram_t 
         return;
     }
 
-// clear RX buffer of echo bytes
+    // clear RX buffer of echo bytes
     for (uint8_t i = 0; i < datagram_size; ++i) {
-        byte = SerialUART_read();
+        SerialUART_read();
     }
 }
 
@@ -738,9 +737,9 @@ void TMC2209_sendDatagramWrite(TMC2209_t *tmc2209, TMC2209_WriteReadReplyDatagra
 
     uint8_t byte;
 
-// clear the serial receive buffer if necessary
+    // clear the serial receive buffer if necessary
     while (SerialUART_available() > 0) {
-        byte = SerialUART_read();
+        SerialUART_read();
     }
 
     for (uint8_t i = 0; i < datagram_size; ++i) {
@@ -748,7 +747,7 @@ void TMC2209_sendDatagramWrite(TMC2209_t *tmc2209, TMC2209_WriteReadReplyDatagra
         SerialUART_write(byte);
     }
 
-// wait for bytes sent out on TX line to be echoed on RX line
+    // wait for bytes sent out on TX line to be echoed on RX line
     uint32_t echo_delay = 0;
     while ((SerialUART_available() < datagram_size) && (echo_delay < ECHO_DELAY_MAX_MICROSECONDS)) {
         sleep_us(ECHO_DELAY_INC_MICROSECONDS);
@@ -760,10 +759,13 @@ void TMC2209_sendDatagramWrite(TMC2209_t *tmc2209, TMC2209_WriteReadReplyDatagra
         return;
     }
 
-// clear RX buffer of echo bytes
+    // clear RX buffer of echo bytes
     for (uint8_t i = 0; i < datagram_size; ++i) {
-        byte = SerialUART_read();
+        SerialUART_read();
     }
+
+    // Make sure UART is free again
+    sleep_ms(10);
 }
 
 void TMC2209_write(TMC2209_t *tmc2209, uint8_t register_address, uint32_t data) {
@@ -817,9 +819,13 @@ uint32_t TMC2209_read(TMC2209_t *tmc2209, uint8_t register_address) {
 
     // this unfortunate code was found to be necessary after testing on hardware
     uint32_t post_read_delay_repeat = POST_READ_DELAY_NUMERATOR / tmc2209->TMC2209_serial_baud_rate_;
-    for (uint8_t i = 0; i < post_read_delay_repeat; ++i) {
+    for (uint32_t i = 0; i < post_read_delay_repeat; ++i) {
         sleep_us(POST_READ_DELAY_INC_MICROSECONDS);
     }
+
+    // Make sure UART is free again
+    sleep_ms(10);
+
     return TMC2209_reverseData(read_reply_datagram.data);
 }
 
