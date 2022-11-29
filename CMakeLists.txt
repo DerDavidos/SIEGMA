@@ -13,6 +13,7 @@ if (UNIT_TEST)
     include(CTest)
 
     add_subdirectory(extern/unity)
+    add_subdirectory(test/unit)
 else ()
     set(CMAKE_EXPORT_COMPILE_COMMANDS 1)
     fetch_git_submodules()
