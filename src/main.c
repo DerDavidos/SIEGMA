@@ -25,6 +25,20 @@
 
 const char *allowedCharacters = "0123456789;\n";
 
+void initTouchSensor() {
+    gpio_init(STEPPER0_LS_PIN);
+    gpio_set_dir(STEPPER0_LS_PIN, GPIO_IN);
+
+    gpio_init(STEPPER1_LS_PIN);
+    gpio_set_dir(STEPPER1_LS_PIN, GPIO_IN);
+
+    gpio_init(STEPPER2_LS_PIN);
+    gpio_set_dir(STEPPER2_LS_PIN, GPIO_IN);
+
+    gpio_init(STEPPER3_LS_PIN);
+    gpio_set_dir(STEPPER3_LS_PIN, GPIO_IN);
+}
+
 int parseInputString(char *buf, unsigned buf_len, int *p_semiPos) {
     char *semicolon = strchr(buf, ';');
     if (semicolon == NULL) {
@@ -50,22 +64,10 @@ void processMsg(char *buf, unsigned buf_len, TMC2209_t *tmc0, TMC2209_t *tmc1, T
     int semi1Pos, semi2Pos, semi3Pos, semi4Pos;
 
     tmc0StopTime = parseInputString(buf, buf_len, &semi1Pos);
-    if (tmc0StopTime < 0) {
-        return;
-    }
     tmc1StopTime = parseInputString(buf + semi1Pos + 1, buf_len - (semi1Pos + 1), &semi2Pos);
-    if (tmc1StopTime < 0) {
-        return;
-    }
     tmc2StopTime = parseInputString(buf + semi1Pos + semi2Pos + 2, buf_len - (semi1Pos + semi2Pos + 2), &semi3Pos);
-    if (tmc2StopTime < 0) {
-        return;
-    }
     tmc3StopTime = parseInputString(buf + semi1Pos + semi2Pos + semi3Pos + 3,
                                     buf_len - (semi1Pos + semi2Pos + semi3Pos + 3), &semi4Pos);
-    if (tmc3StopTime < 0) {
-        return;
-    }
 
     printf("stepper0_pos: %d\n", semi1Pos);
     printf("stepper1_pos: %d\n", semi2Pos);
@@ -79,59 +81,46 @@ void processMsg(char *buf, unsigned buf_len, TMC2209_t *tmc0, TMC2209_t *tmc1, T
     printf("stepper2: %d\n", tmc2StopTime);
     printf("stepper3: %d\n", tmc3StopTime);
 
-    bool stepper0Ready = false;
-    bool stepper1Ready = false;
-    bool stepper2Ready = false;
-    bool stepper3Ready = false;
+    bool stepper0Ready = true, stepper1Ready = true, stepper2Ready = true, stepper3Ready = true;
 
     int numberThatNeedsToBeTriggered = 0;
 
     if (tmc0StopTime > 0) {
         ++numberThatNeedsToBeTriggered;
         TMC2209_moveAtVelocity(tmc0, -50000);
-    } else {
-        stepper0Ready = true;
+        stepper0Ready = false;
     }
     if (tmc1StopTime > 0) {
         ++numberThatNeedsToBeTriggered;
         TMC2209_moveAtVelocity(tmc1, -50000);
-    } else {
-        stepper1Ready = true;
+        stepper1Ready = false;
     }
     if (tmc2StopTime > 0) {
         ++numberThatNeedsToBeTriggered;
         TMC2209_moveAtVelocity(tmc2, -50000);
-    } else {
-        stepper2Ready = true;
+        stepper2Ready = false;
     }
     if (tmc3StopTime > 0) {
         ++numberThatNeedsToBeTriggered;
         TMC2209_moveAtVelocity(tmc3, -50000);
-    } else {
-        stepper3Ready = true;
+        stepper3Ready = false;
     }
 
-    sleep_ms(5000);
+    sleep_ms(5000); // Let selected motors move
 
-    if (!stepper0Ready) {
+    if (!stepper0Ready)
         TMC2209_moveAtVelocity(tmc0, 0);
-    }
-    if (!stepper1Ready) {
+    if (!stepper1Ready)
         TMC2209_moveAtVelocity(tmc1, 0);
-    }
-    if (!stepper2Ready) {
+    if (!stepper2Ready)
         TMC2209_moveAtVelocity(tmc2, 0);
-    }
-    if (!stepper3Ready) {
+    if (!stepper3Ready)
         TMC2209_moveAtVelocity(tmc3, 0);
-    }
 
-    bool tmc0IsGoingDown = 0;
-    bool tmc1IsGoingDown = 0;
-    bool tmc2IsGoingDown = 0;
-    bool tmc3IsGoingDown = 0;
+    bool tmc0IsGoingDown = false, tmc1IsGoingDown = false, tmc2IsGoingDown = false, tmc3IsGoingDown = false;
+    int timeElapsed = 0;
 
-    while (numberThatNeedsToBeTriggered) {   // kann nicht 1 bleiben
+    while (numberThatNeedsToBeTriggered > 0) {
         if (!stepper0Ready) {
             if (tmc0IsGoingDown) {
                 if (gpio_get(STEPPER0_LS_PIN)) {
@@ -139,13 +128,9 @@ void processMsg(char *buf, unsigned buf_len, TMC2209_t *tmc0, TMC2209_t *tmc1, T
                     TMC2209_moveAtVelocity(tmc0, 0);
                     stepper0Ready = true;
                 }
-            } else {
-                tmc0StopTime = tmc0StopTime - 10;
-
-                if (tmc0StopTime <= 0) {
-                    TMC2209_moveAtVelocity(tmc0, 50000);
-                    tmc0IsGoingDown = 1;
-                }
+            } else if (timeElapsed >= tmc0StopTime) {
+                TMC2209_moveAtVelocity(tmc0, 50000);
+                tmc0IsGoingDown = true;
             }
         }
         if (!stepper1Ready) {
@@ -155,13 +140,9 @@ void processMsg(char *buf, unsigned buf_len, TMC2209_t *tmc0, TMC2209_t *tmc1, T
                     TMC2209_moveAtVelocity(tmc1, 0);
                     stepper1Ready = true;
                 }
-            } else {
-                tmc1StopTime = tmc1StopTime - 10;
-
-                if (tmc1StopTime <= 0) {
-                    TMC2209_moveAtVelocity(tmc1, 50000);
-                    tmc1IsGoingDown = 1;
-                }
+            } else if (timeElapsed >= tmc1StopTime) {
+                TMC2209_moveAtVelocity(tmc1, 50000);
+                tmc1IsGoingDown = true;
             }
         }
         if (!stepper2Ready) {
@@ -171,13 +152,9 @@ void processMsg(char *buf, unsigned buf_len, TMC2209_t *tmc0, TMC2209_t *tmc1, T
                     TMC2209_moveAtVelocity(tmc2, 0);
                     stepper2Ready = true;
                 }
-            } else {
-                tmc2StopTime = tmc2StopTime - 10;
-
-                if (tmc2StopTime <= 0) {
-                    TMC2209_moveAtVelocity(tmc2, 50000);
-                    tmc2IsGoingDown = 1;
-                }
+            } else if (timeElapsed >= tmc2StopTime) {
+                TMC2209_moveAtVelocity(tmc2, 50000);
+                tmc2IsGoingDown = true;
             }
         }
         if (!stepper3Ready) {
@@ -187,15 +164,12 @@ void processMsg(char *buf, unsigned buf_len, TMC2209_t *tmc0, TMC2209_t *tmc1, T
                     TMC2209_moveAtVelocity(tmc3, 0);
                     stepper3Ready = true;
                 }
-            } else {
-                tmc3StopTime = tmc3StopTime - 10;
-
-                if (tmc3StopTime <= 0) {
-                    TMC2209_moveAtVelocity(tmc3, 50000);
-                    tmc3IsGoingDown = 1;
-                }
+            } else if (timeElapsed >= tmc3StopTime) {
+                TMC2209_moveAtVelocity(tmc3, 50000);
+                tmc3IsGoingDown = true;
             }
         }
+        timeElapsed += 10;
         sleep_ms(10);
     }
 }
@@ -225,36 +199,19 @@ int main() {
     // Time to make sure everything is ready
     sleep_ms(5000);
 
-    gpio_init(STEPPER0_LS_PIN);
-    gpio_set_dir(STEPPER0_LS_PIN, GPIO_IN);
-
-    gpio_init(STEPPER1_LS_PIN);
-    gpio_set_dir(STEPPER1_LS_PIN, GPIO_IN);
-
-    gpio_init(STEPPER2_LS_PIN);
-    gpio_set_dir(STEPPER2_LS_PIN, GPIO_IN);
-
-    gpio_init(STEPPER3_LS_PIN);
-    gpio_set_dir(STEPPER3_LS_PIN, GPIO_IN);
+    initTouchSensor();
 
     // waits for usb connection, REMOVE to continue without waiting for connection
 //    while ((!stdio_usb_connected()));
 
-    TMC2209_t tmc0;
-    tmc0 = setupTMC(&tmc0, SERIAL_ADDRESS_0);
-
-    TMC2209_t tmc1;
-    tmc1 = setupTMC(&tmc1, SERIAL_ADDRESS_1);
-
-    TMC2209_t tmc2;
-    tmc2 = setupTMC(&tmc2, SERIAL_ADDRESS_2);
-
-    TMC2209_t tmc3;
-    tmc3 = setupTMC(&tmc3, SERIAL_ADDRESS_3);
+    TMC2209_t tmc0 = setupTMC(&tmc0, SERIAL_ADDRESS_0);
+    TMC2209_t tmc1 = setupTMC(&tmc1, SERIAL_ADDRESS_1);
+    TMC2209_t tmc2 = setupTMC(&tmc2, SERIAL_ADDRESS_2);
+    TMC2209_t tmc3 = setupTMC(&tmc3, SERIAL_ADDRESS_3);
 
     char *input_buf = malloc(INPUT_BUFFER_LEN);
     memset(input_buf, '\0', INPUT_BUFFER_LEN);
-    unsigned charachterConter = 0;
+    unsigned characterCounter = 0;
 
     while (1) {
         char input = getchar_timeout_us(10000000); // 10 seconds wait
@@ -270,18 +227,18 @@ int main() {
 
         if (input == '\n') {
             //printf("Process Msg len: %d\n", counter);
-            processMsg(input_buf, charachterConter, &tmc0, &tmc1, &tmc2, &tmc3);
+            processMsg(input_buf, characterCounter, &tmc0, &tmc1, &tmc2, &tmc3);
             memset(input_buf, '\0', INPUT_BUFFER_LEN);
-            charachterConter = 0;
-        } else if (charachterConter >= INPUT_BUFFER_LEN - 1) {
+            characterCounter = 0;
+        } else if (characterCounter >= INPUT_BUFFER_LEN - 1) {
             // Zu viele Bytes empfangen -> Buffer leeren und bereit für die nächste Anfrage sein
             // Hier kann noch eingefügt werden, dass der Pi eine Rückmeldung bekommt
             memset(input_buf, '\0', INPUT_BUFFER_LEN);
-            charachterConter = 0;
+            characterCounter = 0;
         } else {
-            printf("Received: %c (counter: %d)\n", input, charachterConter);
-            input_buf[charachterConter] = input;
-            ++charachterConter;
+            printf("Received: %c (counter: %d)\n", input, characterCounter);
+            input_buf[characterCounter] = input;
+            ++characterCounter;
         }
     }
 }
