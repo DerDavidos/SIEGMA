@@ -1,6 +1,5 @@
 // ----------------------------------------------------------------------------
-//
-// Authors:
+// Adapted from: https://github.com/peterpolidoro/TMC2209
 // Peter Polidoro peter@polidoro.io
 // ----------------------------------------------------------------------------
 
@@ -361,18 +360,18 @@ typedef union PwmAuto {
 const static uint8_t ADDRESS_PWM_AUTO = 0x72;
 
 typedef struct TMC2209 {
-    bool TMC2209_blocking_;
-    SerialUART_t *TMC2209_serial_ptr_;
-    uint32_t TMC2209_serial_baud_rate_;
-    uint8_t TMC2209_serial_address_;
+    bool blocking;
+    SerialUART_t *serial_ptr;
+    uint32_t serial_baud_rate;
+    uint8_t serial_address;
 
-    TMC2209_DriverCurrent_t TMC2209_driver_current_;
-    TMC2209_CoolConfig_t TMC2209_cool_config_;
-    bool TMC2209_cool_step_enabled_;
-    TMC2209_PwmConfig_t TMC2209_pwm_config_;
+    TMC2209_DriverCurrent_t driver_current;
+    TMC2209_CoolConfig_t cool_config;
+    bool cool_step_enabled;
+    TMC2209_PwmConfig_t pwm_config;
     uint8_t toff_;
-    TMC2209_ChopperConfig_t TMC2209_chopper_config_;
-    TMC2209_GlobalConfig_t TMC2209_global_config_;
+    TMC2209_ChopperConfig_t chopper_config;
+    TMC2209_GlobalConfig_t global_config;
 } TMC2209_t;
 
 
