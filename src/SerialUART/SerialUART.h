@@ -35,6 +35,8 @@
 
 #define UART_PIN_NOT_DEFINED      (255u)
 
+#define SERIAL_BAUD_RATE 115200
+
 typedef struct SerialUART_t {
     bool _running; // set to false by init
     uart_inst_t *_uart;
