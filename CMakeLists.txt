@@ -28,13 +28,15 @@ else ()
         include_directories(src)
         add_subdirectory(src/tmc2209)
         add_subdirectory(src/SerialUART)
+        add_subdirectory(src/dispenser)
 
         add_executable(main src/main.c) # creates executable
         target_include_directories(main PUBLIC ${CMAKE_SOURCE_DIR}/src)
         target_link_libraries(main
                 pico_stdlib
                 serialUART_lib
-                tmc2209_lib)
+                tmc2209_lib
+                dispenser_lib)
         make_to_output_file(main)
     elseif (PICO_ON_DEVICE)
         message(WARNING "not building Project because TinyUSB submodule is not initialized in the SDK")
