@@ -9,6 +9,7 @@
 #include "hardware/watchdog.h"
 #include "TMC2209.h"
 #include "SerialUART.h"
+#include "pico/stdio_usb.h"
 
 #include <string.h>
 
@@ -23,7 +24,26 @@
 
 #define INPUT_BUFFER_LEN 26
 
-const char *allowedCharacters = "0123456789;\n";
+#define TIME_MOTOR_IS_MOVING_UP 5000
+
+const char *allowedCharacters = "0123456789;\nn";
+
+
+void initPico(bool waitForUSBConnection) {
+    if (watchdog_enable_caused_reboot()) {
+        reset_usb_boot(0, 0);
+    }
+
+    // init usb
+    stdio_init_all();
+    // Time to make sure everything is ready
+    sleep_ms(5000);
+
+    // waits for usb connection
+    if (waitForUSBConnection) {
+        while ((!stdio_usb_connected()));
+    }
+}
 
 void initTouchSensor() {
     gpio_init(STEPPER0_LS_PIN);
@@ -43,7 +63,7 @@ int parseInputString(char *buf, unsigned buf_len, int *p_semiPos) {
     char *semicolon = strchr(buf, ';');
     if (semicolon == NULL) {
         // haben kein Komma gefunden -> :(
-        return -1;
+        return 0;
     }
     int semi_pos = semicolon - buf;
     *p_semiPos = semi_pos;
@@ -58,15 +78,15 @@ int parseInputString(char *buf, unsigned buf_len, int *p_semiPos) {
     }
 }
 
-void processMsg(char *buf, unsigned buf_len, TMC2209_t *tmc0, TMC2209_t *tmc1, TMC2209_t *tmc2, TMC2209_t *tmc3) {
-    int tmc0StopTime, tmc1StopTime, tmc2StopTime, tmc3StopTime;
+void processMsg(char *buf, unsigned buf_len, TMC2209_t tmcs[]) {
+    int stopTimes[4];
 
     int semi1Pos, semi2Pos, semi3Pos, semi4Pos;
 
-    tmc0StopTime = parseInputString(buf, buf_len, &semi1Pos);
-    tmc1StopTime = parseInputString(buf + semi1Pos + 1, buf_len - (semi1Pos + 1), &semi2Pos);
-    tmc2StopTime = parseInputString(buf + semi1Pos + semi2Pos + 2, buf_len - (semi1Pos + semi2Pos + 2), &semi3Pos);
-    tmc3StopTime = parseInputString(buf + semi1Pos + semi2Pos + semi3Pos + 3,
+    stopTimes[0] = parseInputString(buf, buf_len, &semi1Pos);
+    stopTimes[1] = parseInputString(buf + semi1Pos + 1, buf_len - (semi1Pos + 1), &semi2Pos);
+    stopTimes[2] = parseInputString(buf + semi1Pos + semi2Pos + 2, buf_len - (semi1Pos + semi2Pos + 2), &semi3Pos);
+    stopTimes[3] = parseInputString(buf + semi1Pos + semi2Pos + semi3Pos + 3,
                                     buf_len - (semi1Pos + semi2Pos + semi3Pos + 3), &semi4Pos);
 
     printf("stepper0_pos: %d\n", semi1Pos);
@@ -76,105 +96,55 @@ void processMsg(char *buf, unsigned buf_len, TMC2209_t *tmc0, TMC2209_t *tmc1, T
 
     printf("buffer len: %d\n", buf_len);
 
-    printf("stepper0: %d\n", tmc0StopTime);
-    printf("stepper1: %d\n", tmc1StopTime);
-    printf("stepper2: %d\n", tmc2StopTime);
-    printf("stepper3: %d\n", tmc3StopTime);
+    for (int i = 0; i < 4; ++i) {
+        printf("stepper %i: %d\n", i, stopTimes[i]);
+    }
 
-    bool stepper0Ready = true, stepper1Ready = true, stepper2Ready = true, stepper3Ready = true;
+    bool steppersReady[4] = {true, true, true, true};
 
     int numberThatNeedsToBeTriggered = 0;
 
-    if (tmc0StopTime > 0) {
-        ++numberThatNeedsToBeTriggered;
-        TMC2209_moveAtVelocity(tmc0, -50000);
-        stepper0Ready = false;
-    }
-    if (tmc1StopTime > 0) {
-        ++numberThatNeedsToBeTriggered;
-        TMC2209_moveAtVelocity(tmc1, -50000);
-        stepper1Ready = false;
-    }
-    if (tmc2StopTime > 0) {
-        ++numberThatNeedsToBeTriggered;
-        TMC2209_moveAtVelocity(tmc2, -50000);
-        stepper2Ready = false;
-    }
-    if (tmc3StopTime > 0) {
-        ++numberThatNeedsToBeTriggered;
-        TMC2209_moveAtVelocity(tmc3, -50000);
-        stepper3Ready = false;
+    for (int i = 0; i < 4; ++i) {
+        if (stopTimes[i] > 0) {
+            ++numberThatNeedsToBeTriggered;
+            TMC2209_moveAtVelocity(&tmcs[i], -50000);
+            steppersReady[i] = false;
+        }
     }
 
-    sleep_ms(5000); // Let selected motors move
+    sleep_ms(TIME_MOTOR_IS_MOVING_UP); // Let selected motors move
 
-    if (!stepper0Ready)
-        TMC2209_moveAtVelocity(tmc0, 0);
-    if (!stepper1Ready)
-        TMC2209_moveAtVelocity(tmc1, 0);
-    if (!stepper2Ready)
-        TMC2209_moveAtVelocity(tmc2, 0);
-    if (!stepper3Ready)
-        TMC2209_moveAtVelocity(tmc3, 0);
+    for (int i = 0; i < 4; ++i) {
+        if (!steppersReady[i])
+            TMC2209_moveAtVelocity(&tmcs[i], 0);
+    }
 
-    bool tmc0IsGoingDown = false, tmc1IsGoingDown = false, tmc2IsGoingDown = false, tmc3IsGoingDown = false;
+    bool isGoingDown[4] = {false, false, false, false};
     int timeElapsed = 0;
 
     while (numberThatNeedsToBeTriggered > 0) {
-        if (!stepper0Ready) {
-            if (tmc0IsGoingDown) {
-                if (gpio_get(STEPPER0_LS_PIN)) {
-                    --numberThatNeedsToBeTriggered;
-                    TMC2209_moveAtVelocity(tmc0, 0);
-                    stepper0Ready = true;
+
+        for (int i = 0; i < 4; ++i) {
+            if (!steppersReady[i]) {
+                if (isGoingDown[i]) {
+                    if (gpio_get(STEPPER0_LS_PIN)) {
+                        --numberThatNeedsToBeTriggered;
+                        TMC2209_moveAtVelocity(&tmcs[0], 0);
+                        steppersReady[i] = true;
+                    }
+                } else if (timeElapsed >= stopTimes[i]) {
+                    TMC2209_moveAtVelocity(&tmcs[0], 50000);
+                    isGoingDown[i] = true;
                 }
-            } else if (timeElapsed >= tmc0StopTime) {
-                TMC2209_moveAtVelocity(tmc0, 50000);
-                tmc0IsGoingDown = true;
             }
         }
-        if (!stepper1Ready) {
-            if (tmc1IsGoingDown) {
-                if (gpio_get(STEPPER1_LS_PIN)) {
-                    --numberThatNeedsToBeTriggered;
-                    TMC2209_moveAtVelocity(tmc1, 0);
-                    stepper1Ready = true;
-                }
-            } else if (timeElapsed >= tmc1StopTime) {
-                TMC2209_moveAtVelocity(tmc1, 50000);
-                tmc1IsGoingDown = true;
-            }
-        }
-        if (!stepper2Ready) {
-            if (tmc2IsGoingDown) {
-                if (gpio_get(STEPPER2_LS_PIN)) {
-                    --numberThatNeedsToBeTriggered;
-                    TMC2209_moveAtVelocity(tmc2, 0);
-                    stepper2Ready = true;
-                }
-            } else if (timeElapsed >= tmc2StopTime) {
-                TMC2209_moveAtVelocity(tmc2, 50000);
-                tmc2IsGoingDown = true;
-            }
-        }
-        if (!stepper3Ready) {
-            if (tmc3IsGoingDown) {
-                if (gpio_get(STEPPER3_LS_PIN)) {
-                    --numberThatNeedsToBeTriggered;
-                    TMC2209_moveAtVelocity(tmc3, 0);
-                    stepper3Ready = true;
-                }
-            } else if (timeElapsed >= tmc3StopTime) {
-                TMC2209_moveAtVelocity(tmc3, 50000);
-                tmc3IsGoingDown = true;
-            }
-        }
-        timeElapsed += 10;
+
         sleep_ms(10);
+        timeElapsed += 10;
     }
 }
 
-TMC2209_t setupTMC(TMC2209_t *tmc, SerialAddress_t address) {
+void setupTMC(TMC2209_t *tmc, SerialAddress_t address) {
     TMC2209_setup(tmc, SERIAL1, SERIAL_BAUD_RATE, address);
 
     while (!TMC2209_isSetupAndCommunicating(tmc)) {
@@ -185,35 +155,25 @@ TMC2209_t setupTMC(TMC2209_t *tmc, SerialAddress_t address) {
     printf("Setup: Stepper driver with address %i setup and communicating!\n", address);
     TMC2209_setRunCurrent(tmc, 100);
     TMC2209_enable(tmc);
-    return (*tmc);
 }
 
 int main() {
 
-    if (watchdog_enable_caused_reboot()) {
-        reset_usb_boot(0, 0);
-    }
-
-    // init usb
-    stdio_init_all();
-    // Time to make sure everything is ready
-    sleep_ms(5000);
+    initPico(false);
 
     initTouchSensor();
 
-    // waits for usb connection, REMOVE to continue without waiting for connection
-//    while ((!stdio_usb_connected()));
-
-    TMC2209_t tmc0 = setupTMC(&tmc0, SERIAL_ADDRESS_0);
-    TMC2209_t tmc1 = setupTMC(&tmc1, SERIAL_ADDRESS_1);
-    TMC2209_t tmc2 = setupTMC(&tmc2, SERIAL_ADDRESS_2);
-    TMC2209_t tmc3 = setupTMC(&tmc3, SERIAL_ADDRESS_3);
+    TMC2209_t tmcs[4] = {};
+    setupTMC(&tmcs[0], SERIAL_ADDRESS_0);
+    setupTMC(&tmcs[1], SERIAL_ADDRESS_1);
+    setupTMC(&tmcs[2], SERIAL_ADDRESS_2);
+    setupTMC(&tmcs[3], SERIAL_ADDRESS_3);
 
     char *input_buf = malloc(INPUT_BUFFER_LEN);
     memset(input_buf, '\0', INPUT_BUFFER_LEN);
     unsigned characterCounter = 0;
 
-    while (1) {
+    while (true) {
         char input = getchar_timeout_us(10000000); // 10 seconds wait
 
         bool isAllowedCharacter = false;
@@ -222,17 +182,20 @@ int main() {
                 isAllowedCharacter = true;
             }
         }
-        if (isAllowedCharacter == false)
+        if (isAllowedCharacter == false) {
+            printf("Received '%c' which is not allowed\n", input);
             continue;
+        }
 
-        if (input == '\n') {
-            //printf("Process Msg len: %d\n", counter);
-            processMsg(input_buf, characterCounter, &tmc0, &tmc1, &tmc2, &tmc3);
+        if (input == 'n') {
+            printf("Process Msg len: %d\n", characterCounter);
+            processMsg(input_buf, characterCounter, tmcs);
             memset(input_buf, '\0', INPUT_BUFFER_LEN);
             characterCounter = 0;
         } else if (characterCounter >= INPUT_BUFFER_LEN - 1) {
             // Zu viele Bytes empfangen -> Buffer leeren und bereit für die nächste Anfrage sein
             // Hier kann noch eingefügt werden, dass der Pi eine Rückmeldung bekommt
+            printf("Wrong input\n");
             memset(input_buf, '\0', INPUT_BUFFER_LEN);
             characterCounter = 0;
         } else {
@@ -242,3 +205,4 @@ int main() {
         }
     }
 }
+
