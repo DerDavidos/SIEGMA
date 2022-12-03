@@ -1,3 +1,9 @@
+/** ----------------------------------------------------------------------------
+ * Adapted from:
+ *  https://github.com/earlephilhower/arduino-pico
+ *  https://github.com/earlephilhower/arduino-pico/blob/master/cores/rp2040/SerialUART.cpp
+*** ---------------------------------------------------------------------------- */
+
 /*
     Serial-over-UART for the Raspberry Pi Pico RP2040
 
