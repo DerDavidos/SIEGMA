@@ -17,6 +17,8 @@
 
 #define TIME_DISPENSERS_ARE_MOVING_UP 5000
 
+#define SERIAL_UART SERIAL1
+
 const char *allowedCharacters = "0123456789;\nn";
 
 void initPico(bool waitForUSBConnection) {
@@ -125,7 +127,7 @@ int main() {
 
     setUpAllTouchSensors();
 
-    setUpAllDispensers();
+    setUpAllDispensers(SERIAL_UART);
 
     char *input_buf = malloc(INPUT_BUFFER_LEN);
     memset(input_buf, '\0', INPUT_BUFFER_LEN);
