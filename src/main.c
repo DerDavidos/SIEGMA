@@ -8,16 +8,13 @@
 #include "pico/stdio_usb.h"
 #include "hardware/watchdog.h"
 
-#include "Dispenser.h"
+#include "dispenser.h"
 #include "touchSensor.h"
 
 #define MAX_SLEEP_INPUT 5
-
 #define INPUT_BUFFER_LEN 26
-
 #define TIME_DISPENSERS_ARE_MOVING_UP 5000
-
-#define SERIAL_UART SERIAL1
+#define SERIAL_UART SERIAL2
 
 const char *allowedCharacters = "0123456789;\nn";
 
@@ -29,7 +26,7 @@ void initPico(bool waitForUSBConnection) {
     // init usb
     stdio_init_all();
     // Time to make sure everything is ready
-    sleep_ms(5000);
+    sleep_ms(2500);
 
     // waits for usb connection
     if (waitForUSBConnection) {
@@ -56,23 +53,66 @@ int parseInputString(char *buf, unsigned buf_len, int *p_semiPos) {
     }
 }
 
+int checkIfDispensersReady(const int *dispenserHaltTimes, bool *dispenserReady, bool *dispenserIsGoingDown,
+                           int timeElapsed) {
+    int numberTriggered = 0;
+
+    for (int i = 0; i < NUMBER_OF_DISPENSERS; ++i) {
+        if (!dispenserReady[i]) {
+            if (dispenserIsGoingDown[i]) {
+                if (touchSensorIsClosed(i)) {
+                    ++numberTriggered;
+                    stopDispenser(i);
+                    dispenserReady[i] = true;
+                }
+            } else if (timeElapsed >= dispenserHaltTimes[i]) {
+                moveDispenserDown(i);
+                dispenserIsGoingDown[i] = true;
+            }
+        }
+    }
+    return numberTriggered;
+}
+
+int moveDispensersUp(const int *dispenserHaltTimes, bool *dispenserReady) {
+    int numberThatNeedsToBeTriggered = 0;
+    for (int i = 0; i < NUMBER_OF_DISPENSERS; ++i) {
+        if (dispenserHaltTimes[i] > 0) {
+            ++numberThatNeedsToBeTriggered;
+            moveDispenserUp(i);
+            dispenserReady[i] = false;
+        }
+    }
+    return numberThatNeedsToBeTriggered;
+}
+
+void stopDispensersAtTheTop(const bool *dispenserReady) {
+    for (int i = 0; i < NUMBER_OF_DISPENSERS; ++i) {
+        if (!dispenserReady[i])
+            stopDispenser(i);
+    }
+}
+
 void processMessage(char *message, unsigned message_length) {
     int dispenserHaltTimes[4];
 
-    int semi1Pos, semi2Pos, semi3Pos, semi4Pos;
+    int semicolon0Position, semicolon1Position, semicolon2Position, semicolon3Position;
 
-    dispenserHaltTimes[0] = parseInputString(message, message_length, &semi1Pos);
-    dispenserHaltTimes[1] = parseInputString(message + semi1Pos + 1, message_length - (semi1Pos + 1), &semi2Pos);
-    dispenserHaltTimes[2] = parseInputString(message + semi1Pos + semi2Pos + 2,
-                                             message_length - (semi1Pos + semi2Pos + 2), &semi3Pos);
-    dispenserHaltTimes[3] = parseInputString(message + semi1Pos + semi2Pos + semi3Pos + 3,
-                                             message_length - (semi1Pos + semi2Pos + semi3Pos + 3), &semi4Pos);
+    dispenserHaltTimes[0] = parseInputString(message, message_length, &semicolon0Position);
+    dispenserHaltTimes[1] = parseInputString(message + semicolon0Position + 1,
+                                             message_length - (semicolon0Position + 1), &semicolon1Position);
+    dispenserHaltTimes[2] = parseInputString(message + semicolon0Position + semicolon1Position + 2,
+                                             message_length - (semicolon0Position + semicolon1Position + 2),
+                                             &semicolon2Position);
+    dispenserHaltTimes[3] = parseInputString(message + semicolon0Position + semicolon1Position + semicolon2Position + 3,
+                                             message_length -
+                                             (semicolon0Position + semicolon1Position + semicolon2Position + 3),
+                                             &semicolon3Position);
 
-    printf("stepper0_pos: %d\n", semi1Pos);
-    printf("stepper1_pos: %d\n", semi2Pos);
-    printf("stepper2_pos: %d\n", semi3Pos);
-    printf("stepper3_pos: %d\n", semi4Pos);
-
+    printf("stepper0_pos: %d\n", semicolon0Position);
+    printf("stepper1_pos: %d\n", semicolon1Position);
+    printf("stepper2_pos: %d\n", semicolon2Position);
+    printf("stepper3_pos: %d\n", semicolon3Position);
     printf("buffer len: %d\n", message_length);
 
     for (int i = 0; i < NUMBER_OF_DISPENSERS; ++i) {
@@ -81,41 +121,18 @@ void processMessage(char *message, unsigned message_length) {
 
     bool dispenserReady[NUMBER_OF_DISPENSERS] = {[0 ... NUMBER_OF_DISPENSERS - 1] = true};
 
-    int numberThatNeedsToBeTriggered = 0;
-
-    for (int i = 0; i < NUMBER_OF_DISPENSERS; ++i) {
-        if (dispenserHaltTimes[i] > 0) {
-            ++numberThatNeedsToBeTriggered;
-            moveDispenserUp(i);
-            dispenserReady[i] = false;
-        }
-    }
+    int numberThatNeedsToBeTriggered = moveDispensersUp(dispenserHaltTimes, dispenserReady);
 
     sleep_ms(TIME_DISPENSERS_ARE_MOVING_UP); // Let selected motors move
 
-    for (int i = 0; i < NUMBER_OF_DISPENSERS; ++i) {
-        if (!dispenserReady[i])
-            stopDispenser(i);
-    }
+    stopDispensersAtTheTop(dispenserReady);
 
     bool dispenserIsGoingDown[NUMBER_OF_DISPENSERS] = {[0 ... NUMBER_OF_DISPENSERS - 1] = false};
-    int timeElapsed = 0;
 
+    int timeElapsed = 0;
     while (numberThatNeedsToBeTriggered > 0) {
-        for (int i = 0; i < NUMBER_OF_DISPENSERS; ++i) {
-            if (!dispenserReady[i]) {
-                if (dispenserIsGoingDown[i]) {
-                    if (touchSensorIsClosed(i)) {
-                        --numberThatNeedsToBeTriggered;
-                        stopDispenser(i);
-                        dispenserReady[i] = true;
-                    }
-                } else if (timeElapsed >= dispenserHaltTimes[i]) {
-                    moveDispenserDown(i);
-                    dispenserIsGoingDown[i] = true;
-                }
-            }
-        }
+        numberThatNeedsToBeTriggered -= checkIfDispensersReady(dispenserHaltTimes, dispenserReady, dispenserIsGoingDown,
+                                                               timeElapsed);
 
         sleep_ms(10);
         timeElapsed += 10;

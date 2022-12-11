@@ -1,7 +1,7 @@
-#include "Dispenser.h"
-#include "TMC2209.h"
+#include "dispenser.h"
+#include "tmc2209.h"
 #include "pico/time.h"
-#include "SerialUART.h"
+#include "serialUART.h"
 
 #include <stdio.h>
 

@@ -2,7 +2,7 @@
 #define SIEGMA_DISPENSER_H
 
 #include <stdint.h>
-#include "SerialUART.h"
+#include "serialUART.h"
 
 #define NUMBER_OF_DISPENSERS 4
 

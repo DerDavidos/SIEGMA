@@ -6,8 +6,8 @@
 
 #include "pico/time.h"
 
-#include "TMC2209.h"
-#include "SerialUART.h"
+#include "tmc2209.h"
+#include "serialUART.h"
 
 #include <stdio.h>
 

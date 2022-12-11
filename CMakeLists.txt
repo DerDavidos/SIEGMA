@@ -27,7 +27,7 @@ else ()
     if (TARGET tinyusb_device)
         include_directories(src)
         add_subdirectory(src/tmc2209)
-        add_subdirectory(src/SerialUART)
+        add_subdirectory(src/serialUART)
         add_subdirectory(src/dispenser)
         add_subdirectory(src/touchSensor)
 
