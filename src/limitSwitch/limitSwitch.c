@@ -1,7 +1,7 @@
-#include "touchSensor.h"
+#include "limitSwitch.h"
 #include "hardware/gpio.h"
 
-bool touchSensorIsClosed(uint8_t id) {
+bool limitSwitchIsClosed(uint8_t id) {
     switch (id) {
         case 0:
             return gpio_get(STEPPER0_LS_PIN);
@@ -16,7 +16,7 @@ bool touchSensorIsClosed(uint8_t id) {
     }
 }
 
-void setUpTouchSensor(uint8_t id) {
+void setUpLimitSwitch(uint8_t id) {
     switch (id) {
         case 0:
             gpio_init(STEPPER0_LS_PIN);
@@ -39,10 +39,16 @@ void setUpTouchSensor(uint8_t id) {
     }
 }
 
-void setUpAllTouchSensors(void) {
-    for (int i = 0; i < 4; ++i) {
-        setUpTouchSensor(i);
+void setUpAllLimitSwitches(void) {
+    for (int i = 0; i < NUMBER_OF_LIMIT_SWITCHES; ++i) {
+        setUpLimitSwitch(i);
     }
 }
 
-
+bool allLimitSwitchesAreClosed(void) {
+    for (int i = 0; i < NUMBER_OF_LIMIT_SWITCHES; ++i) {
+        if (!limitSwitchIsClosed(i))
+            return false;
+    }
+    return true;
+}

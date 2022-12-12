@@ -29,7 +29,7 @@ else ()
         add_subdirectory(src/tmc2209)
         add_subdirectory(src/serialUART)
         add_subdirectory(src/dispenser)
-        add_subdirectory(src/touchSensor)
+        add_subdirectory(src/limitSwitch)
 
         add_executable(main src/main.c) # creates executable
         target_include_directories(main PUBLIC ${CMAKE_SOURCE_DIR}/src)
@@ -38,7 +38,7 @@ else ()
                 serialUART_lib
                 tmc2209_lib
                 dispenser_lib
-                touchSensor_lib)
+                limitSwitch_lib)
         make_to_output_file(main)
     elseif (PICO_ON_DEVICE)
         message(WARNING "not building Project because TinyUSB submodule is not initialized in the SDK")

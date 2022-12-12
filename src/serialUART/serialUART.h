@@ -6,6 +6,8 @@
 #include "hardware/gpio.h"
 #include "hardware/uart.h"
 
+#include <stdbool.h>
+
 #define SERIAL_PARITY_EVEN   (0x1ul)
 #define SERIAL_PARITY_ODD    (0x2ul)
 #define SERIAL_PARITY_NONE   (0x3ul)
