@@ -31,6 +31,8 @@ else ()
         add_subdirectory(src/dispenser)
         add_subdirectory(src/limitSwitch)
 
+        add_subdirectory(test/integration)
+
         add_executable(main src/main.c) # creates executable
         target_include_directories(main PUBLIC ${CMAKE_SOURCE_DIR}/src)
         target_link_libraries(main
