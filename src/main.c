@@ -9,130 +9,90 @@
 #include "hardware/watchdog.h"
 
 #include "dispenser.h"
-#include "touchSensor.h"
+#include "limitSwitch.h"
 
 #define MAX_SLEEP_INPUT 5
 #define INPUT_BUFFER_LEN 26
-#define TIME_DISPENSERS_ARE_MOVING_UP 5000
 #define SERIAL_UART SERIAL2
 
 const char *allowedCharacters = "0123456789;\nn";
 
 void initPico(bool waitForUSBConnection) {
-    if (watchdog_enable_caused_reboot()) {
+    if (watchdog_enable_caused_reboot())
         reset_usb_boot(0, 0);
-    }
 
-    // init usb
-    stdio_init_all();
-    // Time to make sure everything is ready
-    sleep_ms(2500);
+    stdio_init_all(); // init usb
+    sleep_ms(2500); // Time to make sure everything is ready
 
-    // waits for usb connection
-    if (waitForUSBConnection) {
-        while ((!stdio_usb_connected()));
-    }
+    if (waitForUSBConnection)
+        while ((!stdio_usb_connected())); // waits for usb connection
 }
 
-int parseInputString(char *buf, unsigned buf_len, int *p_semiPos) {
-    char *semicolonPosition = strchr(buf, ';');
-    if (semicolonPosition == NULL) {
-        // haben kein Komma gefunden -> :(
+int parseInputString(char *message, unsigned *message_length) {
+    char *semicolonPosition = strchr(message, ';');
+    if (semicolonPosition == NULL)
+        return 0; // haben kein Komma gefunden -> :(
+
+    int semi_pos = semicolonPosition - message;
+    if (*message_length < semi_pos || semi_pos > MAX_SLEEP_INPUT || semi_pos <= 0)
         return 0;
-    }
-    int semi_pos = semicolonPosition - buf;
-    *p_semiPos = semi_pos;
-    if (buf_len < semi_pos || semi_pos > MAX_SLEEP_INPUT || semi_pos <= 0) {
-        return 0;
-    } else {
-        char stepper1_number_buf[MAX_SLEEP_INPUT + 1];
-        memcpy(stepper1_number_buf, buf, semi_pos);
-        stepper1_number_buf[semi_pos] = '\0';
-        stepper1_number_buf[MAX_SLEEP_INPUT] = '\0';
-        return strtol(stepper1_number_buf, NULL, 10);
-    }
+
+    char stepper1_number_buf[MAX_SLEEP_INPUT + 1];
+    memcpy(stepper1_number_buf, message, semi_pos);
+    stepper1_number_buf[semi_pos] = '\0';
+    stepper1_number_buf[MAX_SLEEP_INPUT] = '\0';
+    *message = *message + semi_pos + 1;
+    *message_length = *message_length - (semi_pos + 1);
+    return strtol(stepper1_number_buf, NULL, 10);
 }
 
-int checkIfDispensersReady(const int *dispenserHaltTimes, bool *dispenserReady, bool *dispenserIsGoingDown,
-                           int timeElapsed) {
-    int numberTriggered = 0;
-
+void startSelectedDispensers(const int *dispenserHaltTimes) {
     for (int i = 0; i < NUMBER_OF_DISPENSERS; ++i) {
-        if (!dispenserReady[i]) {
-            if (dispenserIsGoingDown[i]) {
-                if (touchSensorIsClosed(i)) {
-                    ++numberTriggered;
-                    stopDispenser(i);
-                    dispenserReady[i] = true;
-                }
-            } else if (timeElapsed >= dispenserHaltTimes[i]) {
-                moveDispenserDown(i);
-                dispenserIsGoingDown[i] = true;
-            }
-        }
-    }
-    return numberTriggered;
-}
-
-int moveDispensersUp(const int *dispenserHaltTimes, bool *dispenserReady) {
-    int numberThatNeedsToBeTriggered = 0;
-    for (int i = 0; i < NUMBER_OF_DISPENSERS; ++i) {
-        if (dispenserHaltTimes[i] > 0) {
-            ++numberThatNeedsToBeTriggered;
+        if (dispenserHaltTimes[i] > 0)
             moveDispenserUp(i);
-            dispenserReady[i] = false;
-        }
     }
-    return numberThatNeedsToBeTriggered;
 }
 
-void stopDispensersAtTheTop(const bool *dispenserReady) {
+void stopDispensersAtTheTop(const int *dispenserHaltTimes) {
     for (int i = 0; i < NUMBER_OF_DISPENSERS; ++i) {
-        if (!dispenserReady[i])
+        if (dispenserHaltTimes[i] > 0)
+            stopDispenser(i);
+    }
+}
+
+void moveSelectedDispensersToTopPosition(const int *dispenserHaltTimes) {
+    startSelectedDispensers(dispenserHaltTimes);
+    sleep_ms(TIME_DISPENSERS_ARE_MOVING_UP); // Let selected motors move
+    stopDispensersAtTheTop(dispenserHaltTimes);
+}
+
+void moveDispensersDownWhenFinished(const int dispenserHaltTimes[4], int timeElapsed) {
+    for (int i = 0; i < NUMBER_OF_DISPENSERS; ++i) {
+        if (timeElapsed > dispenserHaltTimes[i] && getDispenserDirection(i) == STOP && !limitSwitchIsClosed(i))
+            moveDispenserDown(i);
+    }
+}
+
+void stopDispensersIfAtTheBottom(const int *dispenserHaltTimes, int timeElapsed) {
+    for (int i = 0; i < NUMBER_OF_DISPENSERS; ++i) {
+        if (timeElapsed > dispenserHaltTimes[i] && getDispenserDirection(i) == DOWN && limitSwitchIsClosed(i))
             stopDispenser(i);
     }
 }
 
 void processMessage(char *message, unsigned message_length) {
     int dispenserHaltTimes[4];
-
-    int semicolon0Position, semicolon1Position, semicolon2Position, semicolon3Position;
-
-    dispenserHaltTimes[0] = parseInputString(message, message_length, &semicolon0Position);
-    dispenserHaltTimes[1] = parseInputString(message + semicolon0Position + 1,
-                                             message_length - (semicolon0Position + 1), &semicolon1Position);
-    dispenserHaltTimes[2] = parseInputString(message + semicolon0Position + semicolon1Position + 2,
-                                             message_length - (semicolon0Position + semicolon1Position + 2),
-                                             &semicolon2Position);
-    dispenserHaltTimes[3] = parseInputString(message + semicolon0Position + semicolon1Position + semicolon2Position + 3,
-                                             message_length -
-                                             (semicolon0Position + semicolon1Position + semicolon2Position + 3),
-                                             &semicolon3Position);
-
-    printf("stepper0_pos: %d\n", semicolon0Position);
-    printf("stepper1_pos: %d\n", semicolon1Position);
-    printf("stepper2_pos: %d\n", semicolon2Position);
-    printf("stepper3_pos: %d\n", semicolon3Position);
-    printf("buffer len: %d\n", message_length);
-
     for (int i = 0; i < NUMBER_OF_DISPENSERS; ++i) {
+        dispenserHaltTimes[i] = parseInputString(message, &message_length);
         printf("stepper %i: %d\n", i, dispenserHaltTimes[i]);
     }
 
-    bool dispenserReady[NUMBER_OF_DISPENSERS] = {[0 ... NUMBER_OF_DISPENSERS - 1] = true};
-
-    int numberThatNeedsToBeTriggered = moveDispensersUp(dispenserHaltTimes, dispenserReady);
-
-    sleep_ms(TIME_DISPENSERS_ARE_MOVING_UP); // Let selected motors move
-
-    stopDispensersAtTheTop(dispenserReady);
-
-    bool dispenserIsGoingDown[NUMBER_OF_DISPENSERS] = {[0 ... NUMBER_OF_DISPENSERS - 1] = false};
+    moveSelectedDispensersToTopPosition(dispenserHaltTimes);
 
     int timeElapsed = 0;
-    while (numberThatNeedsToBeTriggered > 0) {
-        numberThatNeedsToBeTriggered -= checkIfDispensersReady(dispenserHaltTimes, dispenserReady, dispenserIsGoingDown,
-                                                               timeElapsed);
+    while (!allLimitSwitchesAreClosed()) {
+        moveDispensersDownWhenFinished(dispenserHaltTimes, timeElapsed);
+        stopDispensersIfAtTheBottom(dispenserHaltTimes, timeElapsed);
 
         sleep_ms(10);
         timeElapsed += 10;
@@ -142,7 +102,7 @@ void processMessage(char *message, unsigned message_length) {
 int main() {
     initPico(false);
 
-    setUpAllTouchSensors();
+    setUpAllLimitSwitches();
 
     setUpAllDispensers(SERIAL_UART);
 
