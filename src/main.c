@@ -111,7 +111,9 @@ int main() {
     unsigned characterCounter = 0;
 
     while (true) {
-        char input = getchar_timeout_us(10000000); // 10 seconds wait
+        uint32_t input = getchar_timeout_us(10000000); // 10 seconds wait
+        if (input == PICO_ERROR_TIMEOUT)
+            continue;
 
         bool isAllowedCharacter = false;
         for (int i = 0; i < strlen(allowedCharacters); ++i) {
@@ -120,7 +122,7 @@ int main() {
             }
         }
         if (isAllowedCharacter == false) {
-            printf("Received '%c' which is not allowed\n", input);
+            printf("Received '%lu' which is not allowed\n", input);
             continue;
         }
 
@@ -136,7 +138,7 @@ int main() {
             memset(input_buf, '\0', INPUT_BUFFER_LEN);
             characterCounter = 0;
         } else {
-            printf("Received: %c (counter: %d)\n", input, characterCounter);
+            printf("Received: %lu (counter: %d)\n", input, characterCounter);
             input_buf[characterCounter] = input;
             ++characterCounter;
         }

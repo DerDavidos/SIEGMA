@@ -14,6 +14,7 @@ void setUpDispenser_intern(Dispenser *dispenser, SerialAddress_t address, Serial
         if (TMC2209_disabledByInputPin(&dispenser->tmc2209)) {
             printf("Setup: Stepper driver with address %i DISABLED by input pin!\n", address);
         }
+        printf("Setup: Stepper driver with address %i NOT communicating and setup!\n", address);
         TMC2209_setup(&dispenser->tmc2209, uart, SERIAL_BAUD_RATE, address);
         sleep_ms(500);
     }
