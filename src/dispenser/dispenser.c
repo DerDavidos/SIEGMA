@@ -8,16 +8,16 @@
 Dispenser dispensers[4] = {};
 
 void setUpDispenser_intern(Dispenser *dispenser, SerialAddress_t address, SerialUART_t uart) {
-    TMC2209_setup(dispenser->tmc2209, uart, SERIAL_BAUD_RATE, address);
+    TMC2209_setup(&dispenser->tmc2209, uart, SERIAL_BAUD_RATE, address);
 
-    while (!TMC2209_isSetupAndCommunicating(dispenser->tmc2209)) {
+    while (!TMC2209_isSetupAndCommunicating(&dispenser->tmc2209)) {
         printf("Setup: Stepper driver with address %i NOT setup and communicating!\n", address);
         sleep_ms(1000);
-        TMC2209_setup(dispenser->tmc2209, uart, SERIAL_BAUD_RATE, address);
+        TMC2209_setup(&dispenser->tmc2209, uart, SERIAL_BAUD_RATE, address);
     }
     printf("Setup: Stepper driver with address %i setup and communicating!\n", address);
-    TMC2209_setRunCurrent(dispenser->tmc2209, 100);
-    TMC2209_enable(dispenser->tmc2209);
+    TMC2209_setRunCurrent(&dispenser->tmc2209, 100);
+    TMC2209_enable(&dispenser->tmc2209);
 
     dispenser->direction = STOP;
 }
@@ -33,17 +33,17 @@ void setUpAllDispensers(SerialUART_t uart) {
 }
 
 void moveDispenserUp(uint8_t id) {
-    TMC2209_moveAtVelocity(dispensers[id].tmc2209, -50000);
+    TMC2209_moveAtVelocity(&dispensers[id].tmc2209, -50000);
     dispensers[id].direction = UP;
 }
 
 void moveDispenserDown(uint8_t id) {
-    TMC2209_moveAtVelocity(dispensers[id].tmc2209, 50000);
+    TMC2209_moveAtVelocity(&dispensers[id].tmc2209, 50000);
     dispensers[id].direction = DOWN;
 }
 
 void stopDispenser(uint8_t id) {
-    TMC2209_moveAtVelocity(dispensers[id].tmc2209, 0);
+    TMC2209_moveAtVelocity(&dispensers[id].tmc2209, 0);
     dispensers[id].direction = STOP;
 }
 

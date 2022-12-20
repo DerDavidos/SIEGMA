@@ -15,7 +15,7 @@ typedef enum dispenserDirection_t {
 } dispenserDirection;
 
 typedef struct dispenser_t {
-    TMC2209_t *tmc2209;
+    TMC2209_t tmc2209;
     dispenserDirection direction;
 } Dispenser;
 
