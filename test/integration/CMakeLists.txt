@@ -11,5 +11,6 @@
          dispenser_lib
          tmc2209_lib
          pico_stdlib
-         serialUART_lib)
+         serialUART_lib
+         motor_lib)
  make_to_output_file(dispenser)

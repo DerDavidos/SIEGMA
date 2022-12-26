@@ -3,34 +3,37 @@
 
 #include <stdint.h>
 #include "serialUART.h"
-#include "tmc2209.h"
+#include "motor.h"
 
 #define NUMBER_OF_DISPENSERS 4
 #define TIME_DISPENSERS_ARE_MOVING_UP 5000
 
-typedef enum dispenserDirection_t {
+#if NUMBER_OF_DISPENSERS > 4
+#error ONLY 4 DISPENERS AVAILABLE
+#endif
+
+typedef enum DispenserState {
+    SLEEP,
     UP,
+    TOP,
     DOWN,
-    STOP
-} dispenserDirection;
+} DispenserState_t;
 
+typedef struct Dispenser {
+    Motor_t motor;
+    DispenserState_t state;
+    SerialAddress_t address;
+    uint32_t haltTime;
+} Dispenser_t;
 
+Dispenser_t createDispenser(SerialAddress_t address, SerialUART_t uart);
 
-typedef struct dispenser_t {
-    TMC2209_t tmc2209;
-    dispenserDirection direction;
-} Dispenser;
+void startDispenser(Dispenser_t *dispenser);
 
-void setUpDispenser(uint8_t id, SerialUART_t uart);
+void dispenserDoStep(Dispenser_t *dispenser, int timeElapsed);
 
-void setUpAllDispensers(SerialUART_t uart);
+bool allDispenserSleep(Dispenser_t *dispenser, uint8_t number_of_dispenser);
 
-void moveDispenserUp(uint8_t id);
-
-void moveDispenserDown(uint8_t id);
-
-void stopDispenser(uint8_t id);
-
-dispenserDirection getDispenserDirection(uint8_t id);
+void setDispenserHaltTime(Dispenser_t *dispenser, uint32_t haltTime);
 
 #endif //SIEGMA_DISPENSER_H

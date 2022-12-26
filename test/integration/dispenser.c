@@ -7,6 +7,7 @@
 #include "pico/time.h"
 #include "pico/stdio_usb.h"
 #include "pico/printf.h"
+#include "motor/motor.h"
 
 #define SERIAL_UART SERIAL2
 
@@ -24,8 +25,10 @@ void initPico(bool waitForUSBConnection) {
 int main() {
     initPico(true);
 
-    printf("First write Stepper ID (0-%i) and then command: Setup (s), Up (u), Down (d), Stop(s), Get Direction (g)\n",
+    printf("First write Stepper ID (0-%i) and then command: Setup (s), Up (u), Down (d), Stop(s)\n",
            NUMBER_OF_DISPENSERS);
+
+    Motor_t motor[4];
 
     while (true) {
         uint32_t id = getchar_timeout_us(10000000); // 10 seconds wait
@@ -44,23 +47,20 @@ int main() {
         switch (command) {
             case 's':
                 printf("Setup dispenser: %lu\n", id);
-                setUpDispenser(id, SERIAL_UART);
+                motor[id] = createMotor(id, SERIAL_UART);
+//                setUpMotor(motor, id, SERIAL_UART);
                 break;
             case 'u':
                 printf("Move dispenser up: %lu\n", id);
-                moveDispenserUp(id);
+                moveMotorUp(&motor[id]);
                 break;
             case 'd':
                 printf("Move dispenser down: %lu\n", id);
-                moveDispenserDown(id);
+                moveMotorDown(&motor[id]);
                 break;
             case 'h':
                 printf("Stop dispenser: %lu\n", id);
-                stopDispenser(id);
-                break;
-            case 'g':
-                printf("Direction of dispenser: %lu: %i (UP: %i, DOWN: %i, STOP: %i)\n", id, getDispenserDirection(id),
-                       UP, DOWN, STOP);
+                stopMotor(&motor[id]);
                 break;
             default:
                 printf("Wrong Command!\n");

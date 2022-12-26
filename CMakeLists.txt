@@ -30,6 +30,7 @@ else ()
         add_subdirectory(src/serialUART)
         add_subdirectory(src/dispenser)
         add_subdirectory(src/limitSwitch)
+        add_subdirectory(src/motor)
 
         add_subdirectory(test/integration)
 
@@ -40,7 +41,8 @@ else ()
                 serialUART_lib
                 tmc2209_lib
                 dispenser_lib
-                limitSwitch_lib)
+                limitSwitch_lib
+                motor_lib)
         make_to_output_file(main)
     elseif (PICO_ON_DEVICE)
         message(WARNING "not building Project because TinyUSB submodule is not initialized in the SDK")
