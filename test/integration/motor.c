@@ -26,7 +26,7 @@ int main() {
     initPico(true);
 
     printf("First write Stepper ID (0-%i) and then command: Setup (s), Up (u), Down (d), Stop(s)\n",
-           NUMBER_OF_DISPENSERS);
+           NUMBER_OF_DISPENSERS-1);
 
     Motor_t motor[4];
 
@@ -48,7 +48,6 @@ int main() {
             case 's':
                 printf("Setup dispenser: %lu\n", id);
                 motor[id] = createMotor(id, SERIAL_UART);
-//                setUpMotor(motor, id, SERIAL_UART);
                 break;
             case 'u':
                 printf("Move dispenser up: %lu\n", id);

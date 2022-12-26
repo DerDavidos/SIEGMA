@@ -1,4 +1,5 @@
 #include "limitSwitch.h"
+#include "dispenser/dispenser.h"
 
 #include "hardware/watchdog.h"
 #include "pico/bootrom.h"
@@ -21,16 +22,19 @@ void initPico(bool waitForUSBConnection) {
 int main() {
     initPico(true);
 
-    setUpAllLimitSwitches();
+    limitSwitch_t limitSwitch[NUMBER_OF_DISPENSERS];
+
+    for (int i = 0; i < NUMBER_OF_DISPENSERS; ++i) {
+        limitSwitch[i] = createLimitSwitch(i);
+    }
 
     while (true) {
-        for (int i = 0; i < NUMBER_OF_LIMIT_SWITCHES; ++i) {
-            if (limitSwitchIsClosed(i))
+        for (int i = 0; i < NUMBER_OF_DISPENSERS; ++i) {
+            if (limitSwitchIsClosed(limitSwitch[i]))
                 printf("Switch %i is closed\n", i);
             else
                 printf("Switch %i is open\n", i);
         }
-        printf("All are closed: %i", allLimitSwitchesAreClosed());
         printf("#####################\n");
         sleep_ms(1000);
     }

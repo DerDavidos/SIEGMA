@@ -5,7 +5,7 @@
          pico_stdlib)
  make_to_output_file(limitSwitches)
 
- add_executable(dispenser dispenser.c) # creates executable
+ add_executable(dispenser motor.c) # creates executable
  target_include_directories(dispenser PUBLIC ${CMAKE_SOURCE_DIR}/src)
  target_link_libraries(dispenser
          dispenser_lib

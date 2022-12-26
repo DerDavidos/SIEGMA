@@ -8,8 +8,6 @@
 #include "pico/stdio_usb.h"
 #include "hardware/watchdog.h"
 
-#include "Motor.h"
-#include "limitSwitch.h"
 #include "dispenser.h"
 
 #define INPUT_BUFFER_LEN 26
@@ -69,8 +67,6 @@ void processMessage(char *message) {
 
 int main() {
     initPico(false);
-
-    setUpAllLimitSwitches();
 
     for (uint8_t i = 0; i < NUMBER_OF_DISPENSERS; ++i) {
         dispenser[i] = createDispenser(i, SERIAL_UART);

@@ -1,6 +1,5 @@
 #include "dispenser.h"
 #include "motor.h"
-
 #include "limitSwitch/limitSwitch.h"
 
 Dispenser_t createDispenser(SerialAddress_t address, SerialUART_t uart) {
@@ -8,6 +7,8 @@ Dispenser_t createDispenser(SerialAddress_t address, SerialUART_t uart) {
     dispenser.motor = createMotor(address, uart);
     dispenser.state = SLEEP;
     dispenser.address = address;
+    dispenser.limitSwitch = createLimitSwitch(address);
+
     return dispenser;
 }
 
@@ -31,7 +32,7 @@ void dispenserDoStep(Dispenser_t *dispenser, int timeElapsed) {
                 dispenser->state = DOWN;
             }
         case DOWN:
-            if (limitSwitchIsClosed(dispenser->address)) {
+            if (limitSwitchIsClosed(dispenser->limitSwitch)) {
                 stopMotor(&dispenser->motor);
                 dispenser->state = SLEEP;
             }

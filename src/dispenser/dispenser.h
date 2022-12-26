@@ -4,6 +4,7 @@
 #include <stdint.h>
 #include "serialUART.h"
 #include "motor.h"
+#include "limitSwitch/limitSwitch.h"
 
 #define NUMBER_OF_DISPENSERS 4
 #define TIME_DISPENSERS_ARE_MOVING_UP 5000
@@ -24,6 +25,7 @@ typedef struct Dispenser {
     DispenserState_t state;
     SerialAddress_t address;
     uint32_t haltTime;
+    limitSwitch_t limitSwitch;
 } Dispenser_t;
 
 Dispenser_t createDispenser(SerialAddress_t address, SerialUART_t uart);

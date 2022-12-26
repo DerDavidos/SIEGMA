@@ -1,54 +1,31 @@
 #include "limitSwitch.h"
 #include "hardware/gpio.h"
 
-bool limitSwitchIsClosed(uint8_t id) {
+bool limitSwitchIsClosed(limitSwitch_t limitSwitch) {
+    return gpio_get(limitSwitch.pin);
+}
+
+limitSwitch_t createLimitSwitch(uint8_t id) {
+    limitSwitch_t limitSwitch;
+
     switch (id) {
         case 0:
-            return gpio_get(STEPPER0_LS_PIN);
-        case 1:
-            return gpio_get(STEPPER1_LS_PIN);
-        case 2:
-            return gpio_get(STEPPER2_LS_PIN);
-        case 3:
-            return gpio_get(STEPPER3_LS_PIN);
-        default:
-            return false;
-    }
-}
-
-void setUpLimitSwitch(uint8_t id) {
-    switch (id) {
-        case 0:
-            gpio_init(STEPPER0_LS_PIN);
-            gpio_set_dir(STEPPER0_LS_PIN, GPIO_IN);
+            limitSwitch = LIMIT_SWITCH_0;
             break;
         case 1:
-            gpio_init(STEPPER1_LS_PIN);
-            gpio_set_dir(STEPPER1_LS_PIN, GPIO_IN);
+            limitSwitch = LIMIT_SWITCH_1;
             break;
         case 2:
-            gpio_init(STEPPER2_LS_PIN);
-            gpio_set_dir(STEPPER2_LS_PIN, GPIO_IN);
+            limitSwitch = LIMIT_SWITCH_2;
             break;
         case 3:
-            gpio_init(STEPPER3_LS_PIN);
-            gpio_set_dir(STEPPER3_LS_PIN, GPIO_IN);
+            limitSwitch = LIMIT_SWITCH_3;
             break;
         default:
-            break;
+            return (limitSwitch_t) {.pin=-1};
     }
-}
 
-void setUpAllLimitSwitches(void) {
-    for (int i = 0; i < NUMBER_OF_LIMIT_SWITCHES; ++i) {
-        setUpLimitSwitch(i);
-    }
-}
-
-bool allLimitSwitchesAreClosed(void) {
-    for (int i = 0; i < NUMBER_OF_LIMIT_SWITCHES; ++i) {
-        if (!limitSwitchIsClosed(i))
-            return false;
-    }
-    return true;
+    gpio_init(limitSwitch.pin);
+    gpio_set_dir(limitSwitch.pin, GPIO_IN);
+    return limitSwitch;
 }
