@@ -6,7 +6,7 @@
 #include "pico/stdio.h"
 #include "pico/time.h"
 #include "pico/stdio_usb.h"
-#include "pico/printf.h"
+#include "pico/stdio.h"
 
 void initPico(bool waitForUSBConnection) {
     if (watchdog_enable_caused_reboot())
