@@ -2,8 +2,10 @@
 #define SIEGMA_MOTOR_H
 
 #include <stdint.h>
-#include "SerialUARt.h"
+#include "serialUART.h"
 #include "tmc2209.h"
+
+#define MOTOR_SPEED 50000
 
 typedef struct Motor {
     TMC2209_t tmc2209;

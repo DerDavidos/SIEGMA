@@ -4,6 +4,8 @@
 #include <stdint.h>
 #include <stdbool.h>
 
+#include "hardware/gpio.h"
+
 #define STEPPER0_LS_PIN 7
 #define STEPPER1_LS_PIN 3
 #define STEPPER2_LS_PIN 6

@@ -4,7 +4,7 @@
 #include <stdint.h>
 #include "serialUART.h"
 #include "motor.h"
-#include "limitSwitch/limitSwitch.h"
+#include "limitSwitch.h"
 
 #define NUMBER_OF_DISPENSERS 4
 #define TIME_DISPENSERS_ARE_MOVING_UP 5000
@@ -14,17 +14,17 @@
 #endif
 
 typedef enum DispenserState {
-    SLEEP,
-    UP,
-    TOP,
-    DOWN,
+    DISPENSER_SLEEP,
+    DISPENSER_UP,
+    DISPENSER_TOP,
+    DISPENSER_DOWN,
 } DispenserState_t;
 
 typedef struct Dispenser {
-    Motor_t motor;
-    DispenserState_t state;
     SerialAddress_t address;
+    DispenserState_t state;
     uint32_t haltTime;
+    Motor_t motor;
     limitSwitch_t limitSwitch;
 } Dispenser_t;
 
@@ -32,7 +32,7 @@ Dispenser_t createDispenser(SerialAddress_t address, SerialUART_t uart);
 
 void startDispenser(Dispenser_t *dispenser);
 
-void dispenserDoStep(Dispenser_t *dispenser, int timeElapsed);
+void dispenserDoStep(Dispenser_t *dispenser, uint32_t timeElapsed);
 
 bool allDispenserSleep(Dispenser_t *dispenser, uint8_t number_of_dispenser);
 

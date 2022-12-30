@@ -1,9 +1,6 @@
-#include "tmc2209.h"
-#include "pico/time.h"
-#include "serialUART.h"
 #include "motor.h"
-
 #include <stdio.h>
+#include "pico/time.h"
 
 void setUpMotor(Motor_t *motor, SerialAddress_t address, SerialUART_t uart) {
     TMC2209_setup(&motor->tmc2209, uart, SERIAL_BAUD_RATE, address);
@@ -31,11 +28,11 @@ Motor_t createMotor(SerialAddress_t address, SerialUART_t uart) {
 
 void moveMotorUp(Motor_t *motor) {
     printf("Move motor %i\n", motor->address);
-    TMC2209_moveAtVelocity(&motor->tmc2209, -50000);
+    TMC2209_moveAtVelocity(&motor->tmc2209, -MOTOR_SPEED);
 }
 
 void moveMotorDown(Motor_t *motor) {
-    TMC2209_moveAtVelocity(&motor->tmc2209, 50000);
+    TMC2209_moveAtVelocity(&motor->tmc2209, MOTOR_SPEED);
 }
 
 void stopMotor(Motor_t *motor) {

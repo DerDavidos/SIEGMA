@@ -25,6 +25,7 @@
 */
 
 #include "serialUART.h"
+#include "hardware/irq.h"
 #include <hardware/uart.h>
 #include <hardware/gpio.h>
 #include <stdlib.h>
@@ -150,6 +151,26 @@ void SerialUART_end() {
     }
 }
 
+void __not_in_flash_func(SerialUART_handleIRQ)(bool inIRQ) {
+    // ICR is write-to-clear
+    uart_get_hw(sUART._uart)->icr = UART_UARTICR_RTIC_BITS | UART_UARTICR_RXIC_BITS;
+    while (uart_is_readable(sUART._uart)) {
+        int val = uart_getc(sUART._uart);
+        uint8_t next_writer = sUART._writer + 1;
+        if (next_writer == sUART._fifoSize) {
+            next_writer = 0;
+        }
+        if (next_writer != sUART._reader) {
+            sUART._queue[sUART._writer] = val;
+            asm volatile("":: : "memory"); // Ensure the queue is written before the written count advances
+            // Avoid using division or mod because the HW divider could be in use
+            sUART._writer = next_writer;
+        } else {
+            sUART._overflow = true;
+        }
+    }
+}
+
 void SerialUART_pumpFIFO() {
     int irqno = (sUART._uart == uart0) ? UART0_IRQ : UART1_IRQ;
     bool enabled = irq_is_enabled(irqno);
@@ -196,26 +217,6 @@ size_t SerialUART_write(uint8_t c) {
     }
     uart_putc_raw(sUART._uart, c);
     return 1;
-}
-
-void __not_in_flash_func(SerialUART_handleIRQ)(bool inIRQ) {
-    // ICR is write-to-clear
-    uart_get_hw(sUART._uart)->icr = UART_UARTICR_RTIC_BITS | UART_UARTICR_RXIC_BITS;
-    while (uart_is_readable(sUART._uart)) {
-        int val = uart_getc(sUART._uart);
-        uint8_t next_writer = sUART._writer + 1;
-        if (next_writer == sUART._fifoSize) {
-            next_writer = 0;
-        }
-        if (next_writer != sUART._reader) {
-            sUART._queue[sUART._writer] = val;
-            asm volatile("":: : "memory"); // Ensure the queue is written before the written count advances
-            // Avoid using division or mod because the HW divider could be in use
-            sUART._writer = next_writer;
-        } else {
-            sUART._overflow = true;
-        }
-    }
 }
 
 static void __not_in_flash_func(SerialUART_uart0IRQ)() {

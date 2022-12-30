@@ -28,7 +28,7 @@ void initPico(bool waitForUSBConnection) {
 }
 
 bool isAllowedCharacter(uint32_t input) {
-    for (int i = 0; i < strlen(allowedCharacters); ++i) {
+    for (uint32_t i = 0; i < strlen(allowedCharacters); ++i) {
         if (input == allowedCharacters[i]) {
             return true;
         }
@@ -54,7 +54,7 @@ void processMessage(char *message) {
             startDispenser(&dispenser[i]);
     }
 
-    int timeElapsed = 0;
+    uint32_t timeElapsed = 0;
     while (!allDispenserSleep(dispenser, NUMBER_OF_DISPENSERS)) {
         for (uint8_t i = 0; i < NUMBER_OF_DISPENSERS; ++i) {
             dispenserDoStep(&dispenser[i], timeElapsed);
