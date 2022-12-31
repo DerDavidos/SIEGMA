@@ -7,6 +7,7 @@
 #include "hardware/uart.h"
 
 #include <stdbool.h>
+#include <stdint.h>
 
 #define SERIAL_PARITY_EVEN   (0x1ul)
 #define SERIAL_PARITY_ODD    (0x2ul)
@@ -54,7 +55,6 @@ typedef struct SerialUART_t {
     uint32_t _reader;
     uint8_t _fifoSize; // set to 32 by init
     uint8_t *_queue;
-
 } SerialUART_t;
 
 void SerialUART_begin(unsigned long baud, uint16_t config);
@@ -66,12 +66,6 @@ int SerialUART_read();
 uint8_t SerialUART_available();
 
 size_t SerialUART_write(uint8_t c);
-
-// Not to be called by users, only from the IRQ handler.  In public so that the C-language IQR callback can access it
-void SerialUART_handleIRQ(bool inIRQ);
-
-// User space FIFO transfer
-void SerialUART_pumpFIFO();
 
 SerialUART_t SerialUART(uart_inst_t *uart, uint8_t tx, uint8_t rx);
 

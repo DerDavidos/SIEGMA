@@ -16,48 +16,6 @@ typedef enum SerialAddress {
     SERIAL_ADDRESS_3 = 3,
 } SerialAddress_t;
 
-typedef struct Settings {
-    bool is_communicating;
-    bool is_setup;
-    bool enabled;
-    uint16_t microsteps_per_step;
-    bool inverse_motor_direction_enabled;
-    bool stealth_chop_enabled;
-    uint8_t standstill_mode;
-    uint8_t irun_percent;
-    uint8_t irun_register_value;
-    uint8_t ihold_percent;
-    uint8_t ihold_register_value;
-    uint8_t iholddelay_percent;
-    uint8_t iholddelay_register_value;
-    bool automatic_current_scaling_enabled;
-    bool automatic_gradient_adaptation_enabled;
-    uint8_t pwm_offset;
-    uint8_t pwm_gradient;
-    bool cool_step_enabled;
-    bool analog_current_scaling_enabled;
-    bool internal_sense_resistors_enabled;
-} TMC2209_Settings_t;
-
-typedef struct Status {
-    uint32_t over_temperature_warning: 1;
-    uint32_t over_temperature_shutdown: 1;
-    uint32_t short_to_ground_a: 1;
-    uint32_t short_to_ground_b: 1;
-    uint32_t low_side_short_a: 1;
-    uint32_t low_side_short_b: 1;
-    uint32_t open_load_a: 1;
-    uint32_t open_load_b: 1;
-    uint32_t over_temperature_120c: 1;
-    uint32_t over_temperature_143c: 1;
-    uint32_t over_temperature_150c: 1;
-    uint32_t over_temperature_157c: 1;
-    uint32_t reserved0: 4;
-    uint32_t current_scaling: 5;
-    uint32_t reserved1: 9;
-    uint32_t stealth_chop_mode: 1;
-    uint32_t standstill: 1;
-} Status_t;
 const static uint8_t CURRENT_SCALING_MAX = 31;
 
 typedef enum StandstillMode {
@@ -148,30 +106,6 @@ typedef union GlobalConfig {
     uint32_t bytes;
 } TMC2209_GlobalConfig_t;
 
-
-const static uint8_t ADDRESS_GSTAT = 0x01;
-typedef union GlobalStatus {
-    struct {
-        uint32_t reset: 1;
-        uint32_t drv_err: 1;
-        uint32_t uv_cp: 1;
-        uint32_t reserved: 29;
-    };
-    uint32_t bytes;
-} TMC2209_GlobalStatus_t;
-
-const static uint8_t ADDRESS_IFCNT = 0x02;
-
-const static uint8_t ADDRESS_SENDDELAY = 0x03;
-typedef union SendDelay {
-    struct {
-        uint32_t reserved_0: 8;
-        uint32_t senddelay: 8;
-        uint32_t reserved_1: 16;
-    };
-    uint32_t bytes;
-} TMC2209_SendDelay_t;
-
 const static uint8_t ADDRESS_IOIN = 0x06;
 typedef union Input {
     struct {
@@ -191,7 +125,6 @@ typedef union Input {
     uint32_t bytes;
 } TMC2209_Input_t;
 const static uint8_t VERSION = 0x21;
-
 
 // Velocity Dependent Driver Feature Control Register Set
 const static uint8_t ADDRESS_IHOLD_IRUN = 0x10;
@@ -293,27 +226,6 @@ const static uint8_t HSTART_DEFAULT = 5;
 const static uint8_t TMC2209_TOFF_DEFAULT = 3;
 const static uint8_t TOFF_DISABLE = 0;
 
-const static uint8_t MRES_256 = 0b0000;
-const static uint8_t MRES_128 = 0b0001;
-const static uint8_t MRES_064 = 0b0010;
-const static uint8_t MRES_032 = 0b0011;
-const static uint8_t MRES_016 = 0b0100;
-const static uint8_t MRES_008 = 0b0101;
-const static uint8_t MRES_004 = 0b0110;
-const static uint8_t MRES_002 = 0b0111;
-const static uint8_t MRES_001 = 0b1000;
-
-const static size_t MICROSTEPS_PER_STEP_MIN = 1;
-const static size_t MICROSTEPS_PER_STEP_MAX = 256;
-
-const static uint8_t ADDRESS_DRV_STATUS = 0x6F;
-typedef union DriveStatus {
-    struct {
-        Status_t status;
-    };
-    uint32_t bytes;
-} TMC2209_DriveStatus_t;
-
 const static uint8_t ADDRESS_PWMCONF = 0x70;
 typedef union PwmConfig {
     struct {
@@ -338,28 +250,6 @@ const static uint8_t PWM_GRAD_MIN = 0;
 const static uint8_t PWM_GRAD_MAX = 255;
 const static uint8_t PWM_GRAD_DEFAULT = 0x14;
 
-typedef union PwmScale {
-    struct {
-        uint32_t pwm_scale_sum: 8;
-        uint32_t reserved_0: 8;
-        uint32_t pwm_scale_auto: 9;
-        uint32_t reserved_1: 7;
-    };
-    uint32_t bytes;
-} TMC2209_PwmScale_t;
-const static uint8_t ADDRESS_PWM_SCALE = 0x71;
-
-typedef union PwmAuto {
-    struct {
-        uint32_t pwm_offset_auto: 8;
-        uint32_t reserved_0: 8;
-        uint32_t pwm_gradient_auto: 8;
-        uint32_t reserved_1: 8;
-    };
-    uint32_t bytes;
-} TMC2209_PwmAuto_t;
-const static uint8_t ADDRESS_PWM_AUTO = 0x72;
-
 typedef struct TMC2209 {
     bool blocking;
     SerialUART_t *serial_ptr;
@@ -374,7 +264,6 @@ typedef struct TMC2209 {
     TMC2209_ChopperConfig_t chopper_config;
     TMC2209_GlobalConfig_t global_config;
 } TMC2209_t;
-
 
 void TMC2209_setOperationModeToSerial(TMC2209_t *tmc2209, SerialUART_t seral, long serial_baud_rate,
                                       SerialAddress_t serial_address);
@@ -405,16 +294,6 @@ uint32_t TMC2209_read(TMC2209_t *tmc2209, uint8_t register_address);
 
 uint8_t TMC2209_percentToCurrentSetting(uint8_t percent);
 
-uint8_t TMC2209_currentSettingToPercent(uint8_t current_setting);
-
-uint8_t TMC2209_percentToHoldDelaySetting(uint8_t percent);
-
-uint8_t TMC2209_holdDelaySettingToPercent(uint8_t hold_delay_setting);
-
-uint8_t TMC2209_pwmAmplitudeToPwmAmpl(TMC2209_t *tmc2209, uint8_t pwm_amplitude);
-
-uint8_t TMC2209_pwmAmplitudeToPwmGrad(TMC2209_t *tmc2209, uint8_t pwm_amplitude);
-
 void TMC2209_writeStoredGlobalConfig(TMC2209_t *tmc2209);
 
 uint32_t TMC2209_readGlobalConfigBytes(TMC2209_t *tmc2209);
@@ -428,8 +307,6 @@ uint32_t TMC2209_readChopperConfigBytes(TMC2209_t *tmc2209);
 void TMC2209_writeStoredPwmConfig(TMC2209_t *tmc2209);
 
 uint32_t TMC2209_readPwmConfigBytes(TMC2209_t *tmc2209);
-
-TMC2209_Settings_t TMC2209_getSettings(TMC2209_t *tmc2209);
 
 // identify which microcontroller serial port is connected to the TMC2209
 // e.g. Serial1, Serial2...
@@ -456,94 +333,12 @@ void TMC2209_disable(TMC2209_t *tmc2209);
 // this pin must be grounded or disconnected before driver may be enabled
 bool TMC2209_disabledByInputPin(TMC2209_t *tmc2209);
 
-// valid values = 1,2,4,8,...128,256, other values get rounded down
-void TMC2209_setMicrostepsPerStep(TMC2209_t *tmc2209, uint16_t microsteps_per_step);
-
-// valid values = 0-8, microsteps = 2^exponent, 0=1,1=2,2=4,...8=256
-// https://en.wikipedia.org/wiki/Power_of_two
-void TMC2209_setMicrostepsPerStepPowerOfTwo(TMC2209_t *tmc2209, uint8_t exponent);
-
-uint16_t TMC2209_getMicrostepsPerStep(TMC2209_t *tmc2209);
-
 void TMC2209_setRunCurrent(TMC2209_t *tmc2209, uint8_t percent);
-
-void TMC2209_setHoldCurrent(TMC2209_t *tmc2209, uint8_t percent);
-
-void TMC2209_setHoldDelay(TMC2209_t *tmc2209, uint8_t percent);
-
-void TMC2209_setAllCurrentValues(TMC2209_t *tmc2209, uint8_t run_current_percent, uint8_t hold_current_percent,
-                                 uint8_t hold_delay_percent);
-
-Status_t TMC2209_getStatus(TMC2209_t *tmc2209);
-
-void TMC2209_enableInverseMotorDirection(TMC2209_t *tmc2209);
-
-void TMC2209_disableInverseMotorDirection(TMC2209_t *tmc2209);
-
-void TMC2209_setStandstillMode(TMC2209_t *tmc2209, TMC2209_StandstillMode_t mode);
-
-void TMC2209_enableAutomaticCurrentScaling(TMC2209_t *tmc2209);
-
-void TMC2209_disableAutomaticCurrentScaling(TMC2209_t *tmc2209);
-
-void TMC2209_enableAutomaticGradientAdaptation(TMC2209_t *tmc2209);
 
 void TMC2209_disableAutomaticGradientAdaptation(TMC2209_t *tmc2209);
 
-void TMC2209_setPwmOffset(uint8_t pwm_amplitude);
-
-void TMC2209_setPwmGradient(uint8_t pwm_amplitude);
-
-// default = 20
-// minimum of 2 for StealthChop auto-tuning
-void TMC2209_setPowerDownDelay(uint8_t delay);
-
-uint8_t TMC2209_getInterfaceTransmissionCounter();
-
 void TMC2209_moveAtVelocity(TMC2209_t *tmc2209, int32_t microsteps_per_period);
 
-void TMC2209_moveUsingStepDirInterface();
-
-void TMC2209_enableStealthChop();
-
-void TMC2209_disableStealthChop();
-
-uint32_t TMC2209_getInterstepDuration();
-
-void TMC2209_setStealthChopDurationThreshold(uint32_t duration_threshold);
-
-uint16_t TMC2209_getStallGuardResult();
-
-void TMC2209_setStallGuardThreshold(uint8_t stall_guard_threshold);
-
-uint8_t TMC2209_getPwmScaleSum();
-
-int16_t TMC2209_getPwmScaleAuto();
-
-uint8_t TMC2209_getPwmOffsetAuto();
-
-uint8_t TMC2209_getPwmGradientAuto();
-
-// lower_threshold: min = 1, max = 15
-// upper_threshold: min = 0, max = 15, 0-2 recommended
-void TMC2209_enableCoolStep(TMC2209_t *tmc2209, uint8_t lower_threshold, uint8_t upper_threshold);
-
-void TMC2209_disableCoolStep();
-
-void TMC2209_setCoolStepCurrentIncrement(enum CurrentIncrement current_increment);
-
-void TMC2209_setCoolStepMeasurementCount(enum MeasurementCount measurement_count);
-
-void TMC2209_setCoolStepDurationThreshold(uint32_t duration_threshold);
-
-uint16_t TMC2209_getMicrostepCounter();
-
-void TMC2209_enableAnalogCurrentScaling();
-
-void TMC2209_disableAnalogCurrentScaling();
-
-void TMC2209_useExternalSenseResistors();
-
-void TMC2209_useInternalSenseResistors();
+void TMC2209_disableAutomaticCurrentScaling(TMC2209_t *tmc2209);
 
 #endif
