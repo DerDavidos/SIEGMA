@@ -5,6 +5,7 @@
 #include "serialUART.h"
 #include "tmc2209.h"
 
+#define ENABLE_PIN 0
 #define MOTOR_SPEED 50000
 
 typedef struct Motor {
@@ -13,6 +14,10 @@ typedef struct Motor {
 } Motor_t;
 
 void setUpMotor(Motor_t *motor, SerialAddress_t address, SerialUART_t uart);
+
+void enableMotorsByPin(void);
+
+void disableMotorsByPin(void);
 
 void moveMotorUp(Motor_t *motor);
 
