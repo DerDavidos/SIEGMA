@@ -1,16 +1,17 @@
+// Project
+#include "dispenser.h"
+// Pico SDK
+#include <pico/stdio.h>
+#include <pico/time.h>
+#include <pico/bootrom.h>
+#include <pico/stdio_usb.h>
+#include <hardware/watchdog.h>
+// Standard library
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
-#include "pico/stdio.h"
-#include "pico/time.h"
-#include "pico/bootrom.h"
-#include "pico/stdio_usb.h"
-#include "hardware/watchdog.h"
-
-#include "dispenser.h"
-
-#define INPUT_BUFFER_LEN 26
+#define INPUT_BUFFER_LEN 255
 #define SERIAL_UART SERIAL2
 
 const char *allowedCharacters = "0123456789;\nn";
@@ -36,7 +37,7 @@ bool isAllowedCharacter(uint32_t input) {
     return false;
 }
 
-uint32_t parseInputString(char **message){
+uint32_t parseInputString(char **message) {
     char *semicolonPosition = strchr(*message, ';');
     if (semicolonPosition == NULL)
         return 0; // No Semicolon found
@@ -48,21 +49,19 @@ uint32_t parseInputString(char **message){
 void processMessage(char *message) {
     for (uint8_t i = 0; i < NUMBER_OF_DISPENSERS; ++i) {
         uint32_t dispenserHaltTimes = parseInputString(&message);
-        printf("Dispenser %i will stop %lu ms\n", i, dispenserHaltTimes);
+//        printf("Dispenser %i will stop %lu ms\n", i, dispenserHaltTimes);
         setDispenserHaltTime(&dispenser[i], dispenserHaltTimes);
-        if (dispenserHaltTimes > 0)
-            startDispenser(&dispenser[i]);
     }
 
-    uint32_t timeElapsed = 0;
-    while (!allDispenserSleep(dispenser, NUMBER_OF_DISPENSERS)) {
+    do {
+        // Checks for each dispenser if their next state is reached and perform the according action
         for (uint8_t i = 0; i < NUMBER_OF_DISPENSERS; ++i) {
-            dispenserDoStep(&dispenser[i], timeElapsed);
+            dispenserDoStep(&dispenser[i]);
         }
 
-        sleep_ms(10);
-        timeElapsed += 10;
-    }
+        sleep_ms(DISPENSER_STEP_TIME_MS);
+        // When all dispensers are finished, they are in the state sleep
+    } while (!allDispenserInSleepState(dispenser, NUMBER_OF_DISPENSERS));
 }
 
 int main() {
@@ -76,6 +75,7 @@ int main() {
     memset(input_buf, '\0', INPUT_BUFFER_LEN);
     uint16_t characterCounter = 0;
 
+    // Waits for an input in the form ([0..9];)+[\n|n], each number standing for the wait time of the corresponding dispenser
     while (true) {
         uint32_t input = getchar_timeout_us(10000000); // 10 seconds wait
 
@@ -91,6 +91,8 @@ int main() {
             printf("Process Msg len: %d\n", characterCounter);
             processMessage(input_buf);
             memset(input_buf, '\0', INPUT_BUFFER_LEN);
+            characterCounter = 0;
+            printf("Finished\n");
         } else if (characterCounter >= INPUT_BUFFER_LEN - 1) {
             printf("Input too long, flushing...\n");
             memset(input_buf, '\0', INPUT_BUFFER_LEN);

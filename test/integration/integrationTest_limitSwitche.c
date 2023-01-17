@@ -1,12 +1,12 @@
 #include "limitSwitch.h"
-#include "dispenser/dispenser.h"
+#include "dispenser.h"
 
-#include "hardware/watchdog.h"
-#include "pico/bootrom.h"
-#include "pico/stdio.h"
-#include "pico/time.h"
-#include "pico/stdio_usb.h"
-#include "pico/stdio.h"
+#include <hardware/watchdog.h>
+#include <pico/bootrom.h>
+#include <pico/stdio.h>
+#include <pico/time.h>
+#include <pico/stdio_usb.h>
+#include <pico/printf.h>
 
 void initPico(bool waitForUSBConnection) {
     if (watchdog_enable_caused_reboot())

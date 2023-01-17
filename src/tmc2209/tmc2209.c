@@ -36,10 +36,12 @@
     SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
-#include "pico/time.h"
-
 #include "tmc2209.h"
+#include "tmc2209_intern.h"
+
 #include "serialUART.h"
+
+#include <pico/time.h>
 
 #include <stdio.h>
 
@@ -51,10 +53,9 @@ long map(long x, long in_min, long in_max, long out_min, long out_max) {
     return (x - in_min) * (out_max - out_min) / (in_max - in_min) + out_min;
 }
 
-void TMC2209_setup(TMC2209_t *tmc2209, SerialUART_t serial, long serial_baud_rate, SerialAddress_t serial_address) {
+void TMC2209_setup(TMC2209_t *tmc2209, SerialUART_t serial, uint32_t serial_baud_rate, SerialAddress_t serial_address) {
     tmc2209->toff_ = TMC2209_TOFF_DEFAULT;
 
-    tmc2209->serial_ptr = NULL;
     tmc2209->serial_baud_rate = 500000;
     tmc2209->serial_address = serial_address;
     tmc2209->cool_step_enabled = false;
@@ -69,11 +70,11 @@ void TMC2209_setup(TMC2209_t *tmc2209, SerialUART_t serial, long serial_baud_rat
     TMC2209_disableAutomaticCurrentScaling(tmc2209);
     TMC2209_disableAutomaticGradientAdaptation(tmc2209);
 
+    TMC2209_enableCoolStep(tmc2209, SEMIN_MIN, SEMAX_MAX);
+
     if (!TMC2209_isSetupAndCommunicating(tmc2209))
         tmc2209->blocking = true;
 }
-
-
 
 bool TMC2209_isCommunicating(TMC2209_t *tmc2209) {
     return (TMC2209_getVersion(tmc2209) == VERSION);
@@ -134,8 +135,12 @@ void TMC2209_disableAutomaticGradientAdaptation(TMC2209_t *tmc2209) {
 }
 
 void TMC2209_moveAtVelocity(TMC2209_t *tmc2209, int32_t microsteps_per_period) {
-    if (tmc2209->blocking)
-        return;
+    if (tmc2209->blocking) {
+        TMC2209_setup(tmc2209, *tmc2209->serial_ptr, tmc2209->serial_baud_rate, tmc2209->serial_address);
+    }
+    if (!TMC2209_isSetupAndCommunicating(tmc2209)) {
+        TMC2209_setup(tmc2209, *tmc2209->serial_ptr, tmc2209->serial_baud_rate, tmc2209->serial_address);
+    }
     TMC2209_write(tmc2209, ADDRESS_VACTUAL, microsteps_per_period);
 }
 
@@ -256,9 +261,6 @@ uint8_t TMC2209_calculateCrcRead(TMC2209_ReadRequestDatagram_t datagram, uint8_t
 }
 
 void TMC2209_sendDatagramRead(TMC2209_t *tmc2209, TMC2209_ReadRequestDatagram_t datagram, uint8_t datagram_size) {
-    if (!tmc2209->serial_ptr)
-        return;
-
     uint8_t byte;
     // clear the serial receive buffer if necessary
     while (SerialUART_available() > 0) {
@@ -306,9 +308,6 @@ uint8_t TMC2209_calculateCrcWrite(TMC2209_WriteReadReplyDatagram_t datagram, uin
 }
 
 void TMC2209_sendDatagramWrite(TMC2209_t *tmc2209, TMC2209_WriteReadReplyDatagram_t datagram, uint8_t datagram_size) {
-    if (!tmc2209->serial_ptr)
-        return;
-
     uint8_t byte;
     // clear the serial receive buffer if necessary
     while (SerialUART_available() > 0) {
@@ -355,9 +354,6 @@ void TMC2209_write(TMC2209_t *tmc2209, uint8_t register_address, uint32_t data) 
 }
 
 uint32_t TMC2209_read(TMC2209_t *tmc2209, uint8_t register_address) {
-    if (!tmc2209->serial_ptr)
-        return 0;
-
     TMC2209_ReadRequestDatagram_t read_request_datagram;
     read_request_datagram.bytes = 0;
     read_request_datagram.sync = SYNC;

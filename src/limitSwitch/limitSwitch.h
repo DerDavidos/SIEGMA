@@ -1,10 +1,10 @@
 #ifndef SIEGMA_LIMITSWITCH_H
 #define SIEGMA_LIMITSWITCH_H
 
+#include <hardware/gpio.h>
+
 #include <stdint.h>
 #include <stdbool.h>
-
-#include "hardware/gpio.h"
 
 #define STEPPER0_LS_PIN 7
 #define STEPPER1_LS_PIN 3

@@ -1,13 +1,13 @@
 #include "dispenser.h"
 #include "serialUART.h"
+#include "motor.h"
 
-#include "hardware/watchdog.h"
-#include "pico/bootrom.h"
-#include "pico/stdio.h"
-#include "pico/time.h"
-#include "pico/stdio_usb.h"
-#include "pico/printf.h"
-#include "motor/motor.h"
+#include <hardware/watchdog.h>
+#include <pico/bootrom.h>
+#include <pico/stdio.h>
+#include <pico/time.h>
+#include <pico/stdio_usb.h>
+#include <pico/printf.h>
 
 #define SERIAL_UART SERIAL2
 
@@ -25,7 +25,7 @@ void initPico(bool waitForUSBConnection) {
 int main() {
     initPico(true);
 
-    printf("First write Stepper ID (0-%i) and then command: Setup (s), Up (u), Down (d), Stop(s)\n",
+    printf("First write Stepper ID (0-%i) and then command: Setup (s), Up (u), Down (d), Halt(h)\n",
            NUMBER_OF_DISPENSERS-1);
 
     Motor_t motor[4];
@@ -63,7 +63,7 @@ int main() {
                 break;
             default:
                 printf("Wrong Command!\n");
-                printf("First write Stepper ID (0-%i) and then command: Setup (s), Up (u), Down (d), Halt(h), Get Direction (g)\n",
+                printf("First write Stepper ID (0-%i) and then command: Setup (s), Up (u), Down (d), Halt(h)\n",
                        NUMBER_OF_DISPENSERS - 1);
         }
         printf("\n");
