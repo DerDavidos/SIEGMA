@@ -25,9 +25,11 @@
 */
 
 #include "serialUART.h"
-#include "hardware/irq.h"
+
+#include <hardware/irq.h>
 #include <hardware/uart.h>
 #include <hardware/gpio.h>
+
 #include <stdlib.h>
 
 static SerialUART_t sUART;

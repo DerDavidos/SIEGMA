@@ -6,10 +6,10 @@
 #ifndef TMC2209_H
 #define TMC2209_H
 
+#include "serialUART.h"
+
 #include <stdbool.h>
 #include <stdint.h>
-
-#include "serialUART.h"
 
 typedef enum SerialAddress {
     SERIAL_ADDRESS_0 = 0,

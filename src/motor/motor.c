@@ -1,11 +1,34 @@
 #include "motor.h"
-#include <stdio.h>
-#include "pico/time.h"
 
-bool enablePinEnabled = false;
+#include <pico/time.h>
+#include <hardware/gpio.h>
+
+#include <stdio.h>
+
+void setUpEnablePin(Motor_t *motor, SerialAddress_t id) {
+    switch (id) {
+        case 0:
+            motor->enablePin = MOTOR_ENABLE_PINT_0;
+            break;
+        case 1:
+            motor->enablePin = MOTOR_ENABLE_PINT_1;
+            break;
+        case 2:
+            motor->enablePin = MOTOR_ENABLE_PINT_2;
+            break;
+        case 3:
+            motor->enablePin = MOTOR_ENABLE_PINT_3;
+            break;
+        default:
+            motor->enablePin = 0;
+    }
+    gpio_init( motor->enablePin);
+    gpio_set_dir( motor->enablePin, GPIO_OUT);
+}
 
 void setUpMotor(Motor_t *motor, SerialAddress_t address, SerialUART_t uart) {
-    disableMotorsByPin();
+    setUpEnablePin(motor, address);
+    disableMotorByPin(motor);
 
     TMC2209_setup(&motor->tmc2209, uart, SERIAL_BAUD_RATE, address);
 
@@ -22,25 +45,14 @@ void setUpMotor(Motor_t *motor, SerialAddress_t address, SerialUART_t uart) {
 
     TMC2209_setRunCurrent(&motor->tmc2209, 100);
     TMC2209_enable(&motor->tmc2209);
-
-    enableMotorsByPin();
 }
 
-void inline initEnablePin(void) {
-    if (enablePinEnabled)
-        return;
-    gpio_init(ENABLE_PIN);
-    gpio_set_dir(ENABLE_PIN, GPIO_OUT);
+void enableMotorByPin(Motor_t *motor) {
+    gpio_pull_down(motor->enablePin);
 }
 
-void enableMotorsByPin(void) {
-    initEnablePin();
-    gpio_pull_up(ENABLE_PIN);
-}
-
-void disableMotorsByPin(void) {
-    initEnablePin();
-    gpio_pull_down(ENABLE_PIN);
+void disableMotorByPin(Motor_t *motor) {
+    gpio_pull_up(motor->enablePin);
 }
 
 Motor_t createMotor(SerialAddress_t address, SerialUART_t uart) {
@@ -50,7 +62,6 @@ Motor_t createMotor(SerialAddress_t address, SerialUART_t uart) {
 }
 
 void moveMotorUp(Motor_t *motor) {
-    printf("Move motor %i\n", motor->address);
     TMC2209_moveAtVelocity(&motor->tmc2209, -MOTOR_SPEED);
 }
 

@@ -1,50 +1,79 @@
 #include "dispenser.h"
+#include <stdio.h>
+
+static DispenserState_t sleepState_t = (DispenserState_t) {.function=&sleepState};
+static DispenserState_t upState_t = (DispenserState_t) {.function=&upState};
+static DispenserState_t topState_t = (DispenserState_t) {.function=&topState};
+static DispenserState_t downState_t = (DispenserState_t) {.function=&downState};
 
 Dispenser_t createDispenser(SerialAddress_t address, SerialUART_t uart) {
     Dispenser_t dispenser;
     dispenser.address = address;
-    dispenser.state = DISPENSER_SLEEP;
-    dispenser.haltTime = 0;
+    dispenser.uart = uart;
+    dispenser.haltSteps = 0;
+    dispenser.stepsDone = 0;
+    dispenser.state = (DispenserState_t) {.function=&sleepState};
     dispenser.motor = createMotor(address, uart);
     dispenser.limitSwitch = createLimitSwitch(address);
+
+    // Reset Dispenser position
+    moveMotorUp(&dispenser.motor);
+    while (limitSwitchIsClosed(dispenser.limitSwitch));
+    moveMotorDown(&dispenser.motor);
+    while (!limitSwitchIsClosed(dispenser.limitSwitch));
+
     return dispenser;
 }
 
-void startDispenser(Dispenser_t *dispenser) {
-    moveMotorUp(&dispenser->motor);
-    dispenser->state = DISPENSER_UP;
+static DispenserState_t sleepState(Dispenser_t *dispenser) {
+    if (dispenser->haltSteps > 0) {
+        enableMotorByPin(&dispenser->motor);
+        moveMotorUp(&dispenser->motor);
+        return upState_t;
+    }
+    return sleepState_t;
 }
 
-void dispenserDoStep(Dispenser_t *dispenser, uint32_t timeElapsed) {
-    switch (dispenser->state) {
-        case DISPENSER_SLEEP:
-            return;
-        case DISPENSER_UP:
-            if (timeElapsed > TIME_DISPENSERS_ARE_MOVING_UP) {
-                stopMotor(&dispenser->motor);
-                dispenser->state = DISPENSER_TOP;
-            }
-            return;
-        case DISPENSER_TOP:
-            if (timeElapsed > TIME_DISPENSERS_ARE_MOVING_UP + dispenser->haltTime) {
-                moveMotorDown(&dispenser->motor);
-                dispenser->state = DISPENSER_DOWN;
-            }
-        case DISPENSER_DOWN:
-            if (limitSwitchIsClosed(dispenser->limitSwitch)) {
-                stopMotor(&dispenser->motor);
-                dispenser->state = DISPENSER_SLEEP;
-            }
+static DispenserState_t upState(Dispenser_t *dispenser) {
+    if (dispenser->stepsDone > STEPS_DISPENSERS_ARE_MOVING_UP) {
+        stopMotor(&dispenser->motor);
+        return topState_t;
     }
+    return upState_t;
+}
+
+static DispenserState_t topState(Dispenser_t *dispenser) {
+    if (dispenser->stepsDone > STEPS_DISPENSERS_ARE_MOVING_UP + dispenser->haltSteps) {
+        moveMotorDown(&dispenser->motor);
+        return downState_t;
+    }
+    return topState_t;
+}
+
+static DispenserState_t downState(Dispenser_t *dispenser) {
+    if (limitSwitchIsClosed(dispenser->limitSwitch)) {
+        stopMotor(&dispenser->motor);
+        disableMotorByPin(&dispenser->motor);
+        dispenser->haltSteps = 0;
+        return (DispenserState_t) {.function=&sleepState};
+    }
+    return downState_t;
+}
+
+void dispenserDoStep(Dispenser_t *dispenser) {
+    dispenser->state = dispenser->state.function(dispenser);
+    dispenser->stepsDone++;
 }
 
 void setDispenserHaltTime(Dispenser_t *dispenser, uint32_t haltTime) {
-    dispenser->haltTime = haltTime;
+    dispenser->haltSteps = haltTime / DISPENSER_STEP_TIME_MS;
+    dispenser->stepsDone = 0;
+    printf("Dispenser %i will stop %hu steps\n", dispenser->address, dispenser->haltSteps);
 }
 
-bool allDispenserSleep(Dispenser_t *dispenser, uint8_t number_of_dispenser) {
+bool allDispenserInSleepState(Dispenser_t *dispenser, uint8_t number_of_dispenser) {
     for (uint8_t i = 0; i < number_of_dispenser; ++i) {
-        if (dispenser[i].state != DISPENSER_SLEEP)
+        if (dispenser[i].state.function != sleepState_t.function)
             return false;
     }
     return true;
