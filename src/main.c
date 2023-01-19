@@ -2,16 +2,20 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include "hardware/gpio.h"
 #include "pico/stdio.h"
 #include "pico/time.h"
 #include "pico/bootrom.h"
 #include "pico/stdio_usb.h"
 #include "hardware/watchdog.h"
+#include "hardware/adc.h"
 
+#include "rondell.h"
 #include "Dispenser.h"
 #include "touchSensor.h"
 
 #define MAX_SLEEP_INPUT 5
+
 
 #define INPUT_BUFFER_LEN 26
 
@@ -77,19 +81,22 @@ void processMessage(char *message, unsigned message_length) {
         printf("stepper %i: %d\n", i, dispenserHaltTimes[i]);
     }
 
-    bool dispenserReady[NUMBER_OF_DISPENSERS] = {[0 ... NUMBER_OF_DISPENSERS - 1] = true};
-
     int numberThatNeedsToBeTriggered = 0;
 
     for (int i = 0; i < NUMBER_OF_DISPENSERS; ++i) {
         if (dispenserHaltTimes[i] > 0) {
-            ++numberThatNeedsToBeTriggered;
-            moveDispenserUp(i);
-            dispenserReady[i] = false;
+            moveToDispenserWithId(i);
+            moveDispenserUp(1);
+            sleep_ms(TIME_DISPENSERS_ARE_MOVING_UP + dispenserHaltTimes[i]);
+            moveDispenserDown(1);
+            while (!touchSensorIsClosed(0)) {
+                sleep_ms(10);
+            }
+            stopDispenser(1);
         }
     }
 
-    sleep_ms(TIME_DISPENSERS_ARE_MOVING_UP); // Let selected motors move
+    /*sleep_ms(TIME_DISPENSERS_ARE_MOVING_UP); // Let selected motors move
 
     for (int i = 0; i < NUMBER_OF_DISPENSERS; ++i) {
         if (!dispenserReady[i])
@@ -117,17 +124,36 @@ void processMessage(char *message, unsigned message_length) {
 
         sleep_ms(10);
         timeElapsed += 10;
-    }
+    }*/
 }
+
+extern enum RondellState rondell_state;
+extern enum RondellPos rondell_pos;
 
 int main() {
     initPico(false);
 
-    setUpAllTouchSensors();
+    adc_init();
+    adc_gpio_init(26);
+    adc_select_input(0);
 
-    setUpAllDispensers();
+    setUpTouchSensor(0);
 
-    char *input_buf = malloc(INPUT_BUFFER_LEN);
+    setUpRondellAll();
+
+    moveToDispenserWithId(Pos2);
+
+
+    printf("DISPENSER IN POSITION, ADC: %d\n", adc_read());
+    printf("DISPENSER POSITION NOW: %u\n", getRondellPosition());
+
+    stopRondell();
+
+    while (1) {
+        ;
+    }
+
+    /*char *input_buf = malloc(INPUT_BUFFER_LEN);
     memset(input_buf, '\0', INPUT_BUFFER_LEN);
     unsigned characterCounter = 0;
 
@@ -161,5 +187,5 @@ int main() {
             input_buf[characterCounter] = input;
             ++characterCounter;
         }
-    }
+    }*/
 }
