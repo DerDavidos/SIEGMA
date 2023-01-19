@@ -1,57 +1,80 @@
 #include "dispenser.h"
-#include "tmc2209.h"
-#include "pico/time.h"
-#include "serialUART.h"
-
 #include <stdio.h>
 
-Dispenser dispensers[4] = {};
+static DispenserState_t sleepState_t = (DispenserState_t) {.function=&sleepState};
+static DispenserState_t upState_t = (DispenserState_t) {.function=&upState};
+static DispenserState_t topState_t = (DispenserState_t) {.function=&topState};
+static DispenserState_t downState_t = (DispenserState_t) {.function=&downState};
 
-void setUpDispenser_intern(Dispenser *dispenser, SerialAddress_t address, SerialUART_t uart) {
-    TMC2209_setup(&dispenser->tmc2209, uart, SERIAL_BAUD_RATE, address);
+Dispenser_t createDispenser(SerialAddress_t address, SerialUART_t uart) {
+    Dispenser_t dispenser;
+    dispenser.address = address;
+    dispenser.uart = uart;
+    dispenser.haltSteps = 0;
+    dispenser.stepsDone = 0;
+    dispenser.state = (DispenserState_t) {.function=&sleepState};
+    dispenser.motor = createMotor(address, uart);
+    dispenser.limitSwitch = createLimitSwitch(address);
 
-    while (!TMC2209_isSetupAndCommunicating(&dispenser->tmc2209)) {
-        if (TMC2209_disabledByInputPin(&dispenser->tmc2209)) {
-            printf("Setup: Stepper driver with address %i DISABLED by input pin!\n", address);
-        }
-        printf("Setup: Stepper driver with address %i NOT communicating and setup!\n", address);
-        TMC2209_setup(&dispenser->tmc2209, uart, SERIAL_BAUD_RATE, address);
-        sleep_ms(500);
+    // Reset Dispenser position
+    moveMotorUp(&dispenser.motor);
+    while (limitSwitchIsClosed(dispenser.limitSwitch));
+    moveMotorDown(&dispenser.motor);
+    while (!limitSwitchIsClosed(dispenser.limitSwitch));
+
+    return dispenser;
+}
+
+static DispenserState_t sleepState(Dispenser_t *dispenser) {
+    if (dispenser->haltSteps > 0) {
+        enableMotorByPin(&dispenser->motor);
+        moveMotorUp(&dispenser->motor);
+        return upState_t;
     }
-
-    printf("Setup: Stepper driver with address %i communicating and setup!\n", address);
-
-    TMC2209_setRunCurrent(&dispenser->tmc2209, 100);
-    TMC2209_enable(&dispenser->tmc2209);
-
-    dispenser->direction = STOP;
+    return sleepState_t;
 }
 
-void setUpDispenser(uint8_t id, SerialUART_t uart) {
-    setUpDispenser_intern(&dispensers[id], id, uart);
-}
-
-void setUpAllDispensers(SerialUART_t uart) {
-    for (int i = 0; i < NUMBER_OF_DISPENSERS; ++i) {
-        setUpDispenser(i, uart);
+static DispenserState_t upState(Dispenser_t *dispenser) {
+    if (dispenser->stepsDone > STEPS_DISPENSERS_ARE_MOVING_UP) {
+        stopMotor(&dispenser->motor);
+        return topState_t;
     }
+    return upState_t;
 }
 
-void moveDispenserUp(uint8_t id) {
-    TMC2209_moveAtVelocity(&dispensers[id].tmc2209, -50000);
-    dispensers[id].direction = UP;
+static DispenserState_t topState(Dispenser_t *dispenser) {
+    if (dispenser->stepsDone > STEPS_DISPENSERS_ARE_MOVING_UP + dispenser->haltSteps) {
+        moveMotorDown(&dispenser->motor);
+        return downState_t;
+    }
+    return topState_t;
 }
 
-void moveDispenserDown(uint8_t id) {
-    TMC2209_moveAtVelocity(&dispensers[id].tmc2209, 50000);
-    dispensers[id].direction = DOWN;
+static DispenserState_t downState(Dispenser_t *dispenser) {
+    if (limitSwitchIsClosed(dispenser->limitSwitch)) {
+        stopMotor(&dispenser->motor);
+        disableMotorByPin(&dispenser->motor);
+        dispenser->haltSteps = 0;
+        return (DispenserState_t) {.function=&sleepState};
+    }
+    return downState_t;
 }
 
-void stopDispenser(uint8_t id) {
-    TMC2209_moveAtVelocity(&dispensers[id].tmc2209, 0);
-    dispensers[id].direction = STOP;
+void dispenserDoStep(Dispenser_t *dispenser) {
+    dispenser->state = dispenser->state.function(dispenser);
+    dispenser->stepsDone++;
 }
 
-dispenserDirection getDispenserDirection(uint8_t id) {
-    return dispensers[id].direction;
+void setDispenserHaltTime(Dispenser_t *dispenser, uint32_t haltTime) {
+    dispenser->haltSteps = haltTime / DISPENSER_STEP_TIME_MS;
+    dispenser->stepsDone = 0;
+    printf("Dispenser %i will stop %hu steps\n", dispenser->address, dispenser->haltSteps);
+}
+
+bool allDispenserInSleepState(Dispenser_t *dispenser, uint8_t number_of_dispenser) {
+    for (uint8_t i = 0; i < number_of_dispenser; ++i) {
+        if (dispenser[i].state.function != sleepState_t.function)
+            return false;
+    }
+    return true;
 }

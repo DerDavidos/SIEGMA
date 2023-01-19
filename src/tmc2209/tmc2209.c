@@ -4,10 +4,44 @@
  *  Peter Polidoro peter@polidoro.io
 *** ---------------------------------------------------------------------------- */
 
-#include "pico/time.h"
+/*
+    Janelia Open-Source Software
+    (3-clause BSD License)
+
+    Copyright (c) 2022 Howard Hughes Medical Institute
+
+    Redistribution and use in source and binary forms, with or without modification,
+    are permitted provided that the following conditions are met:
+
+    * Redistributions of source code must retain the above copyright notice, this
+    list of conditions and the following disclaimer.
+
+    * Redistributions in binary form must reproduce the above copyright notice, this
+    list of conditions and the following disclaimer in the documentation and/or
+    other materials provided with the distribution.
+
+    * Neither the name of HHMI nor the names of its contributors may be used to
+    endorse or promote products derived from this software without specific prior
+    written permission.
+
+    THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS “AS IS” AND
+    ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
+    WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+    DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR
+    ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
+    (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+    LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON
+    ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+    (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
+    SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+*/
 
 #include "tmc2209.h"
+#include "tmc2209_intern.h"
+
 #include "serialUART.h"
+
+#include <pico/time.h>
 
 #include <stdio.h>
 
@@ -19,10 +53,9 @@ long map(long x, long in_min, long in_max, long out_min, long out_max) {
     return (x - in_min) * (out_max - out_min) / (in_max - in_min) + out_min;
 }
 
-void TMC2209_setup(TMC2209_t *tmc2209, SerialUART_t serial, long serial_baud_rate, SerialAddress_t serial_address) {
+void TMC2209_setup(TMC2209_t *tmc2209, SerialUART_t serial, uint32_t serial_baud_rate, SerialAddress_t serial_address) {
     tmc2209->toff_ = TMC2209_TOFF_DEFAULT;
 
-    tmc2209->serial_ptr = NULL;
     tmc2209->serial_baud_rate = 500000;
     tmc2209->serial_address = serial_address;
     tmc2209->cool_step_enabled = false;
@@ -36,6 +69,8 @@ void TMC2209_setup(TMC2209_t *tmc2209, SerialUART_t serial, long serial_baud_rat
     TMC2209_disable(tmc2209);
     TMC2209_disableAutomaticCurrentScaling(tmc2209);
     TMC2209_disableAutomaticGradientAdaptation(tmc2209);
+
+    TMC2209_enableCoolStep(tmc2209, SEMIN_MIN, SEMAX_MAX);
 
     if (!TMC2209_isSetupAndCommunicating(tmc2209))
         tmc2209->blocking = true;
@@ -77,92 +112,6 @@ bool TMC2209_disabledByInputPin(TMC2209_t *tmc2209) {
     return input.enn;
 }
 
-void TMC2209_setMicrostepsPerStep(TMC2209_t *tmc2209, uint16_t microsteps_per_step) {
-    if (tmc2209->blocking)
-        return;
-    uint16_t microsteps_per_step_shifted = constrain(microsteps_per_step,
-                                                     MICROSTEPS_PER_STEP_MIN,
-                                                     MICROSTEPS_PER_STEP_MAX);
-    microsteps_per_step_shifted = microsteps_per_step >> 1;
-    uint16_t exponent = 0;
-    while (microsteps_per_step_shifted > 0) {
-        microsteps_per_step_shifted = microsteps_per_step_shifted >> 1;
-        ++exponent;
-    }
-    TMC2209_setMicrostepsPerStepPowerOfTwo(tmc2209, exponent);
-}
-
-void TMC2209_setMicrostepsPerStepPowerOfTwo(TMC2209_t *tmc2209, uint8_t exponent) {
-    if (tmc2209->blocking)
-        return;
-    switch (exponent) {
-        case 0:
-            tmc2209->chopper_config.mres = MRES_001;
-            break;
-        case 1:
-            tmc2209->chopper_config.mres = MRES_002;
-            break;
-        case 2:
-            tmc2209->chopper_config.mres = MRES_004;
-            break;
-        case 3:
-            tmc2209->chopper_config.mres = MRES_008;
-            break;
-        case 4:
-            tmc2209->chopper_config.mres = MRES_016;
-            break;
-        case 5:
-            tmc2209->chopper_config.mres = MRES_032;
-            break;
-        case 6:
-            tmc2209->chopper_config.mres = MRES_064;
-            break;
-        case 7:
-            tmc2209->chopper_config.mres = MRES_128;
-            break;
-        case 8:
-        default:
-            tmc2209->chopper_config.mres = MRES_256;
-    }
-    TMC2209_writeStoredChopperConfig(tmc2209);
-}
-
-uint16_t TMC2209_getMicrostepsPerStep(TMC2209_t *tmc2209) {
-    if (tmc2209->blocking)
-        return 0;
-    uint16_t microsteps_per_step_exponent;
-    switch (tmc2209->chopper_config.mres) {
-        case MRES_001:
-            microsteps_per_step_exponent = 0;
-            break;
-        case MRES_002:
-            microsteps_per_step_exponent = 1;
-            break;
-        case MRES_004:
-            microsteps_per_step_exponent = 2;
-            break;
-        case MRES_008:
-            microsteps_per_step_exponent = 3;
-            break;
-        case MRES_016:
-            microsteps_per_step_exponent = 4;
-            break;
-        case MRES_032:
-            microsteps_per_step_exponent = 5;
-            break;
-        case MRES_064:
-            microsteps_per_step_exponent = 6;
-            break;
-        case MRES_128:
-            microsteps_per_step_exponent = 7;
-            break;
-        case MRES_256:
-        default:
-            microsteps_per_step_exponent = 8;
-    }
-    return 1 << microsteps_per_step_exponent;
-}
-
 void TMC2209_setRunCurrent(TMC2209_t *tmc2209, uint8_t percent) {
     if (tmc2209->blocking)
         return;
@@ -171,138 +120,10 @@ void TMC2209_setRunCurrent(TMC2209_t *tmc2209, uint8_t percent) {
     TMC2209_writeStoredDriverCurrent(tmc2209);
 }
 
-void TMC2209_setHoldCurrent(TMC2209_t *tmc2209, uint8_t percent) {
-    if (tmc2209->blocking)
-        return;
-    uint8_t hold_current = TMC2209_percentToCurrentSetting(percent);
-
-    tmc2209->driver_current.ihold = hold_current;
-    TMC2209_writeStoredDriverCurrent(tmc2209);
-}
-
-void TMC2209_setHoldDelay(TMC2209_t *tmc2209, uint8_t percent) {
-    if (tmc2209->blocking)
-        return;
-    uint8_t hold_delay = TMC2209_percentToHoldDelaySetting(percent);
-
-    tmc2209->driver_current.iholddelay = hold_delay;
-    TMC2209_writeStoredDriverCurrent(tmc2209);
-}
-
-void TMC2209_setAllCurrentValues(TMC2209_t *tmc2209, uint8_t run_current_percent,
-                                 uint8_t hold_current_percent,
-                                 uint8_t hold_delay_percent) {
-    if (tmc2209->blocking)
-        return;
-    uint8_t run_current = TMC2209_percentToCurrentSetting(run_current_percent);
-    uint8_t hold_current = TMC2209_percentToCurrentSetting(hold_current_percent);
-    uint8_t hold_delay = TMC2209_percentToHoldDelaySetting(hold_delay_percent);
-
-    tmc2209->driver_current.irun = run_current;
-    tmc2209->driver_current.ihold = hold_current;
-    tmc2209->driver_current.iholddelay = hold_delay;
-    TMC2209_writeStoredDriverCurrent(tmc2209);
-}
-
-TMC2209_Settings_t TMC2209_getSettings(TMC2209_t *tmc2209) {
-    TMC2209_Settings_t settings;
-    settings.is_communicating = TMC2209_isCommunicating(tmc2209);
-
-    if (settings.is_communicating) {
-        TMC2209_readAndStoreRegisters(tmc2209);
-
-        settings.is_setup = tmc2209->global_config.pdn_disable;
-        settings.enabled = (tmc2209->chopper_config.toff > TOFF_DISABLE);
-        settings.microsteps_per_step = TMC2209_getMicrostepsPerStep(tmc2209);
-        settings.inverse_motor_direction_enabled = tmc2209->global_config.shaft;
-        settings.stealth_chop_enabled = !
-                tmc2209->global_config.enable_spread_cycle;
-        settings.standstill_mode = tmc2209->pwm_config.freewheel;
-        settings.irun_percent = TMC2209_currentSettingToPercent(tmc2209->driver_current.irun);
-        settings.irun_register_value = tmc2209->driver_current.irun;
-        settings.ihold_percent = TMC2209_currentSettingToPercent(tmc2209->driver_current.ihold);
-        settings.ihold_register_value = tmc2209->driver_current.ihold;
-        settings.iholddelay_percent = TMC2209_holdDelaySettingToPercent(tmc2209->driver_current.iholddelay);
-        settings.iholddelay_register_value = tmc2209->driver_current.iholddelay;
-        settings.automatic_current_scaling_enabled = tmc2209->pwm_config.pwm_autoscale;
-        settings.automatic_gradient_adaptation_enabled = tmc2209->pwm_config.pwm_autograd;
-        settings.pwm_offset = tmc2209->pwm_config.pwm_offset;
-        settings.pwm_gradient = tmc2209->pwm_config.pwm_grad;
-        settings.cool_step_enabled = tmc2209->cool_step_enabled;
-        settings.analog_current_scaling_enabled = tmc2209->global_config.i_scale_analog;
-        settings.internal_sense_resistors_enabled = tmc2209->global_config.internal_rsense;
-    } else {
-        settings.is_setup = false;
-
-        settings.enabled = false;
-        settings.microsteps_per_step = 0;
-        settings.inverse_motor_direction_enabled = false;
-        settings.stealth_chop_enabled = false;
-        settings.standstill_mode = tmc2209->pwm_config.freewheel;
-        settings.irun_percent = 0;
-        settings.irun_register_value = 0;
-        settings.ihold_percent = 0;
-        settings.ihold_register_value = 0;
-        settings.iholddelay_percent = 0;
-        settings.iholddelay_register_value = 0;
-        settings.automatic_current_scaling_enabled = false;
-        settings.automatic_gradient_adaptation_enabled = false;
-        settings.pwm_offset = 0;
-        settings.pwm_gradient = 0;
-        settings.cool_step_enabled = false;
-        settings.analog_current_scaling_enabled = false;
-        settings.internal_sense_resistors_enabled = false;
-    }
-
-    return settings;
-}
-
-Status_t TMC2209_getStatus(TMC2209_t *tmc2209) {
-    TMC2209_DriveStatus_t drive_status = {.bytes= 0};
-    if (!tmc2209->blocking)
-        drive_status.bytes = TMC2209_read(tmc2209, ADDRESS_DRV_STATUS);
-    return drive_status.status;
-}
-
-void TMC2209_enableInverseMotorDirection(TMC2209_t *tmc2209) {
-    if (tmc2209->blocking)
-        return;
-    tmc2209->global_config.shaft = 1;
-    TMC2209_writeStoredGlobalConfig(tmc2209);
-}
-
-void TMC2209_disableInverseMotorDirection(TMC2209_t *tmc2209) {
-    if (tmc2209->blocking)
-        return;
-    tmc2209->global_config.shaft = 0;
-    TMC2209_writeStoredGlobalConfig(tmc2209);
-}
-
-void TMC2209_setStandstillMode(TMC2209_t *tmc2209, TMC2209_StandstillMode_t mode) {
-    if (tmc2209->blocking)
-        return;
-    tmc2209->pwm_config.freewheel = mode;
-    TMC2209_writeStoredPwmConfig(tmc2209);
-}
-
-void TMC2209_enableAutomaticCurrentScaling(TMC2209_t *tmc2209) {
-    if (tmc2209->blocking)
-        return;
-    tmc2209->pwm_config.pwm_autoscale = STEPPER_DRIVER_FEATURE_ON;
-    TMC2209_writeStoredPwmConfig(tmc2209);
-}
-
 void TMC2209_disableAutomaticCurrentScaling(TMC2209_t *tmc2209) {
     if (tmc2209->blocking)
         return;
     tmc2209->pwm_config.pwm_autoscale = STEPPER_DRIVER_FEATURE_OFF;
-    TMC2209_writeStoredPwmConfig(tmc2209);
-}
-
-void TMC2209_enableAutomaticGradientAdaptation(TMC2209_t *tmc2209) {
-    if (tmc2209->blocking)
-        return;
-    tmc2209->pwm_config.pwm_autograd = STEPPER_DRIVER_FEATURE_ON;
     TMC2209_writeStoredPwmConfig(tmc2209);
 }
 
@@ -314,8 +135,12 @@ void TMC2209_disableAutomaticGradientAdaptation(TMC2209_t *tmc2209) {
 }
 
 void TMC2209_moveAtVelocity(TMC2209_t *tmc2209, int32_t microsteps_per_period) {
-    if (tmc2209->blocking)
-        return;
+    if (tmc2209->blocking) {
+        TMC2209_setup(tmc2209, *tmc2209->serial_ptr, tmc2209->serial_baud_rate, tmc2209->serial_address);
+    }
+    if (!TMC2209_isSetupAndCommunicating(tmc2209)) {
+        TMC2209_setup(tmc2209, *tmc2209->serial_ptr, tmc2209->serial_baud_rate, tmc2209->serial_address);
+    }
     TMC2209_write(tmc2209, ADDRESS_VACTUAL, microsteps_per_period);
 }
 
@@ -436,9 +261,6 @@ uint8_t TMC2209_calculateCrcRead(TMC2209_ReadRequestDatagram_t datagram, uint8_t
 }
 
 void TMC2209_sendDatagramRead(TMC2209_t *tmc2209, TMC2209_ReadRequestDatagram_t datagram, uint8_t datagram_size) {
-    if (!tmc2209->serial_ptr)
-        return;
-
     uint8_t byte;
     // clear the serial receive buffer if necessary
     while (SerialUART_available() > 0) {
@@ -486,9 +308,6 @@ uint8_t TMC2209_calculateCrcWrite(TMC2209_WriteReadReplyDatagram_t datagram, uin
 }
 
 void TMC2209_sendDatagramWrite(TMC2209_t *tmc2209, TMC2209_WriteReadReplyDatagram_t datagram, uint8_t datagram_size) {
-    if (!tmc2209->serial_ptr)
-        return;
-
     uint8_t byte;
     // clear the serial receive buffer if necessary
     while (SerialUART_available() > 0) {
@@ -535,9 +354,6 @@ void TMC2209_write(TMC2209_t *tmc2209, uint8_t register_address, uint32_t data) 
 }
 
 uint32_t TMC2209_read(TMC2209_t *tmc2209, uint8_t register_address) {
-    if (!tmc2209->serial_ptr)
-        return 0;
-
     TMC2209_ReadRequestDatagram_t read_request_datagram;
     read_request_datagram.bytes = 0;
     read_request_datagram.sync = SYNC;
@@ -585,22 +401,6 @@ uint8_t TMC2209_percentToCurrentSetting(uint8_t percent) {
     uint8_t current_setting = map(constrained_percent, PERCENT_MIN, PERCENT_MAX, CURRENT_SETTING_MIN,
                                   CURRENT_SETTING_MAX);
     return current_setting;
-}
-
-uint8_t TMC2209_currentSettingToPercent(uint8_t current_setting) {
-    uint8_t percent = map(current_setting, CURRENT_SETTING_MIN, CURRENT_SETTING_MAX, PERCENT_MIN, PERCENT_MAX);
-    return percent;
-}
-
-uint8_t TMC2209_percentToHoldDelaySetting(uint8_t percent) {
-    uint8_t constrained_percent = constrain(percent, PERCENT_MIN, PERCENT_MAX);
-    uint8_t hold_delay_setting = map(constrained_percent, PERCENT_MIN, PERCENT_MAX, HOLD_DELAY_MIN, HOLD_DELAY_MAX);
-    return hold_delay_setting;
-}
-
-uint8_t TMC2209_holdDelaySettingToPercent(uint8_t hold_delay_setting) {
-    uint8_t percent = map(hold_delay_setting, HOLD_DELAY_MIN, HOLD_DELAY_MAX, PERCENT_MIN, PERCENT_MAX);
-    return percent;
 }
 
 void TMC2209_writeStoredGlobalConfig(TMC2209_t *tmc2209) {
