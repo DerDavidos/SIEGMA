@@ -1,12 +1,13 @@
-// ----------------------------------------------------------------------------
-// Adapted from: https://github.com/peterpolidoro/TMC2209
-// Peter Polidoro peter@polidoro.io
-// ----------------------------------------------------------------------------
+/** ----------------------------------------------------------------------------
+ * Adapted from:
+ *  https://github.com/peterpolidoro/TMC2209
+ *  Peter Polidoro peter@polidoro.io
+*** ---------------------------------------------------------------------------- */
 
 #include "pico/time.h"
 
-#include "TMC2209.h"
-#include "SerialUART.h"
+#include "tmc2209.h"
+#include "serialUART.h"
 
 #include <stdio.h>
 
@@ -17,7 +18,6 @@
 long map(long x, long in_min, long in_max, long out_min, long out_max) {
     return (x - in_min) * (out_max - out_min) / (in_max - in_min) + out_min;
 }
-
 
 void TMC2209_setup(TMC2209_t *tmc2209, SerialUART_t serial, long serial_baud_rate, SerialAddress_t serial_address) {
     tmc2209->toff_ = TMC2209_TOFF_DEFAULT;
@@ -313,139 +313,11 @@ void TMC2209_disableAutomaticGradientAdaptation(TMC2209_t *tmc2209) {
     TMC2209_writeStoredPwmConfig(tmc2209);
 }
 
-//void TMC2209_setPwmOffset(TMC2209_t *tmc2209,uint8_t pwm_amplitude) {
-//    if (tmc2209->TMC2209_blocking_) {
-//        return;
-//    }
-//    tmc2209->TMC2209_pwm_config_.pwm_offset = pwm_amplitude;
-//    TMC2209_writeStoredPwmConfig();
-//}
-//
-//void TMC2209_setPwmGradient(TMC2209_t *tmc2209,uint8_t pwm_amplitude) {
-//    if (tmc2209->TMC2209_blocking_) {
-//        return;
-//    }
-//    tmc2209->TMC2209_pwm_config_.pwm_grad = pwm_amplitude;
-//    TMC2209_writeStoredPwmConfig();
-//}
-//
-//void TMC2209_setPowerDownDelay(TMC2209_t *tmc2209,uint8_t delay) {
-//    if (tmc2209->TMC2209_blocking_) {
-//        return;
-//    }
-//    TMC2209_write(ADDRESS_TPOWERDOWN, delay);
-//}
-
-//uint8_t TMC2209_getInterfaceTransmissionCounter(TMC2209_t *tmc2209) {
-//    if (tmc2209->TMC2209_blocking_) {
-//        return 0;
-//    }
-//    return TMC2209_read(ADDRESS_IFCNT);
-//}
-
 void TMC2209_moveAtVelocity(TMC2209_t *tmc2209, int32_t microsteps_per_period) {
     if (tmc2209->blocking)
         return;
     TMC2209_write(tmc2209, ADDRESS_VACTUAL, microsteps_per_period);
 }
-
-//void TMC2209_moveUsingStepDirInterface(TMC2209_t *tmc2209) {
-//    if (tmc2209->TMC2209_blocking_) {
-//        return;
-//    }
-//    TMC2209_write(ADDRESS_VACTUAL, VACTUAL_STEP_DIR_INTERFACE);
-//}
-//
-//void TMC2209_enableStealthChop(TMC2209_t *tmc2209) {
-//    if (tmc2209->TMC2209_blocking_) {
-//        return;
-//    }
-//    tmc2209->TMC2209_global_config_.enable_spread_cycle = 0;
-//    TMC2209_writeStoredGlobalConfig();
-//}
-//
-//void TMC2209_disableStealthChop(TMC2209_t *tmc2209) {
-//    if (tmc2209->TMC2209_blocking_) {
-//        return;
-//    }
-//    tmc2209->TMC2209_global_config_.enable_spread_cycle = 1;
-//    TMC2209_writeStoredGlobalConfig();
-//}
-//
-//uint32_t TMC2209_getInterstepDuration(TMC2209_t *tmc2209) {
-//    if (tmc2209->TMC2209_blocking_) {
-//        return 0;
-//    }
-//    return TMC2209_read(ADDRESS_TSTEP);
-//}
-//
-//void TMC2209_setCoolStepDurationThreshold(TMC2209_t *tmc2209,uint32_t duration_threshold) {
-//    if (tmc2209->TMC2209_blocking_) {
-//        return;
-//    }
-//    TMC2209_write(ADDRESS_TCOOLTHRS, duration_threshold);
-//}
-//
-//void TMC2209_setStealthChopDurationThreshold(TMC2209_t *tmc2209,uint32_t duration_threshold) {
-//    if (tmc2209->TMC2209_blocking_) {
-//        return;
-//    }
-//    TMC2209_write(ADDRESS_TPWMTHRS, duration_threshold);
-//}
-//
-//uint16_t TMC2209_getStallGuardResult(TMC2209_t *tmc2209) {
-//    if (tmc2209->TMC2209_blocking_) {
-//        return 0;
-//    }
-//    return TMC2209_read(ADDRESS_SG_RESULT);
-//}
-//
-//void TMC2209_setStallGuardThreshold(TMC2209_t *tmc2209,uint8_t stall_guard_threshold) {
-//    if (tmc2209->TMC2209_blocking_) {
-//        return;
-//    }
-//    TMC2209_write(ADDRESS_SGTHRS, stall_guard_threshold);
-//}
-//
-//uint8_t TMC2209_getPwmScaleSum(TMC2209_t *tmc2209) {
-//    if (tmc2209->TMC2209_blocking_) {
-//        return 0;
-//    }
-//    TMC2209_PwmScale_t pwm_scale;
-//    pwm_scale.bytes = TMC2209_read(ADDRESS_PWM_SCALE);
-//
-//    return pwm_scale.pwm_scale_sum;
-//}
-//
-//int16_t TMC2209_getPwmScaleAuto(TMC2209_t *tmc2209) {
-//    if (tmc2209->TMC2209_blocking_) {
-//        return 0;
-//    }
-//    TMC2209_PwmScale_t pwm_scale;
-//    pwm_scale.bytes = TMC2209_read(ADDRESS_PWM_SCALE);
-//
-//    return pwm_scale.pwm_scale_auto;
-//}
-//
-//uint8_t TMC2209_getPwmOffsetAuto(TMC2209_t *tmc2209) {
-//    if (tmc2209->TMC2209_blocking_) {
-//        return 0;
-//    }
-//    TMC2209_PwmAuto_t pwm_auto;
-//    pwm_auto.bytes = TMC2209_read(ADDRESS_PWM_AUTO);
-//
-//    return pwm_auto.pwm_offset_auto;
-//}
-//
-//uint8_t TMC2209_getPwmGradientAuto(TMC2209_t *tmc2209) {
-//    if (tmc2209->TMC2209_blocking_) {
-//        return 0;
-//    }
-//    TMC2209_PwmAuto_t pwm_auto;
-//    pwm_auto.bytes = TMC2209_read(ADDRESS_PWM_AUTO);
-//
-//    return pwm_auto.pwm_gradient_auto;
-//}
 
 void TMC2209_enableCoolStep(TMC2209_t *tmc2209, uint8_t lower_threshold,
                             uint8_t upper_threshold) {
@@ -458,70 +330,6 @@ void TMC2209_enableCoolStep(TMC2209_t *tmc2209, uint8_t lower_threshold,
     TMC2209_write(tmc2209, ADDRESS_COOLCONF, tmc2209->cool_config.bytes);
     tmc2209->cool_step_enabled = true;
 }
-
-//void TMC2209_disableCoolStep(TMC2209_t *tmc2209) {
-//    if (tmc2209->TMC2209_blocking_) {
-//        return;
-//    }
-//    tmc2209->TMC2209_cool_config_.semin = SEMIN_OFF;
-//    TMC2209_write(ADDRESS_COOLCONF, tmc2209->TMC2209_cool_config_.bytes);
-//    tmc2209->TMC2209_cool_step_enabled_ = false;
-//}
-//
-//void TMC2209_setCoolStepCurrentIncrement(TMC2209_t *tmc2209,TMC2209_CurrentIncrement_t current_increment) {
-//    if (tmc2209->TMC2209_blocking_) {
-//        return;
-//    }
-//    tmc2209->TMC2209_cool_config_.seup = current_increment;
-//    TMC2209_write(ADDRESS_COOLCONF, tmc2209->TMC2209_cool_config_.bytes);
-//}
-//
-//void TMC2209_setCoolStepMeasurementCount(TMC2209_t *tmc2209,TMC2209_MeasurementCount_t measurement_count) {
-//    if (tmc2209->TMC2209_blocking_) {
-//        return;
-//    }
-//    tmc2209->TMC2209_cool_config_.sedn = measurement_count;
-//    TMC2209_write(ADDRESS_COOLCONF, tmc2209->TMC2209_cool_config_.bytes);
-//}
-//
-//uint16_t TMC2209_getMicrostepCounter(TMC2209_t *tmc2209) {
-//    if (tmc2209->TMC2209_blocking_) {
-//        return 0;
-//    }
-//    return TMC2209_read(ADDRESS_MSCNT);
-//}
-//
-//void TMC2209_enableAnalogCurrentScaling(TMC2209_t *tmc2209) {
-//    if (tmc2209->TMC2209_blocking_) {
-//        return;
-//    }
-//    tmc2209->TMC2209_global_config_.i_scale_analog = 1;
-//    TMC2209_writeStoredGlobalConfig();
-//}
-//
-//void TMC2209_disableAnalogCurrentScaling(TMC2209_t *tmc2209) {
-//    if (tmc2209->TMC2209_blocking_) {
-//        return;
-//    }
-//    tmc2209->TMC2209_global_config_.i_scale_analog = 0;
-//    TMC2209_writeStoredGlobalConfig();
-//}
-//
-//void TMC2209_useExternalSenseResistors(TMC2209_t *tmc2209) {
-//    if (tmc2209->TMC2209_blocking_) {
-//        return;
-//    }
-//    tmc2209->TMC2209_global_config_.internal_rsense = 0;
-//    TMC2209_writeStoredGlobalConfig();
-//}
-//
-//void TMC2209_useInternalSenseResistors(TMC2209_t *tmc2209) {
-//    if (tmc2209->TMC2209_blocking_) {
-//        return;
-//    }
-//    tmc2209->TMC2209_global_config_.internal_rsense = 1;
-//    TMC2209_writeStoredGlobalConfig();
-//}
 
 void TMC2209_setOperationModeToSerial(TMC2209_t *tmc2209, SerialUART_t serial, long serial_baud_rate,
                                       SerialAddress_t serial_address) {
@@ -632,7 +440,6 @@ void TMC2209_sendDatagramRead(TMC2209_t *tmc2209, TMC2209_ReadRequestDatagram_t 
         return;
 
     uint8_t byte;
-
     // clear the serial receive buffer if necessary
     while (SerialUART_available() > 0) {
         SerialUART_read();
@@ -683,7 +490,6 @@ void TMC2209_sendDatagramWrite(TMC2209_t *tmc2209, TMC2209_WriteReadReplyDatagra
         return;
 
     uint8_t byte;
-
     // clear the serial receive buffer if necessary
     while (SerialUART_available() > 0) {
         SerialUART_read();
@@ -743,9 +549,7 @@ uint32_t TMC2209_read(TMC2209_t *tmc2209, uint8_t register_address) {
     TMC2209_sendDatagramRead(tmc2209, read_request_datagram, READ_REQUEST_DATAGRAM_SIZE);
 
     uint32_t reply_delay = 0;
-    while ((SerialUART_available() < WRITE_READ_REPLY_DATAGRAM_SIZE)
-           &&
-           (reply_delay < REPLY_DELAY_MAX_MICROSECONDS)) {
+    while ((SerialUART_available() < WRITE_READ_REPLY_DATAGRAM_SIZE) && (reply_delay < REPLY_DELAY_MAX_MICROSECONDS)) {
         sleep_us(REPLY_DELAY_INC_MICROSECONDS);
         reply_delay += REPLY_DELAY_INC_MICROSECONDS;
     }
@@ -777,44 +581,25 @@ uint32_t TMC2209_read(TMC2209_t *tmc2209, uint8_t register_address) {
 }
 
 uint8_t TMC2209_percentToCurrentSetting(uint8_t percent) {
-    uint8_t constrained_percent = constrain(percent,
-                                            PERCENT_MIN,
-                                            PERCENT_MAX);
-    uint8_t current_setting = map(constrained_percent,
-                                  PERCENT_MIN,
-                                  PERCENT_MAX,
-                                  CURRENT_SETTING_MIN,
+    uint8_t constrained_percent = constrain(percent, PERCENT_MIN, PERCENT_MAX);
+    uint8_t current_setting = map(constrained_percent, PERCENT_MIN, PERCENT_MAX, CURRENT_SETTING_MIN,
                                   CURRENT_SETTING_MAX);
     return current_setting;
 }
 
 uint8_t TMC2209_currentSettingToPercent(uint8_t current_setting) {
-    uint8_t percent = map(current_setting,
-                          CURRENT_SETTING_MIN,
-                          CURRENT_SETTING_MAX,
-                          PERCENT_MIN,
-                          PERCENT_MAX);
+    uint8_t percent = map(current_setting, CURRENT_SETTING_MIN, CURRENT_SETTING_MAX, PERCENT_MIN, PERCENT_MAX);
     return percent;
 }
 
 uint8_t TMC2209_percentToHoldDelaySetting(uint8_t percent) {
-    uint8_t constrained_percent = constrain(percent,
-                                            PERCENT_MIN,
-                                            PERCENT_MAX);
-    uint8_t hold_delay_setting = map(constrained_percent,
-                                     PERCENT_MIN,
-                                     PERCENT_MAX,
-                                     HOLD_DELAY_MIN,
-                                     HOLD_DELAY_MAX);
+    uint8_t constrained_percent = constrain(percent, PERCENT_MIN, PERCENT_MAX);
+    uint8_t hold_delay_setting = map(constrained_percent, PERCENT_MIN, PERCENT_MAX, HOLD_DELAY_MIN, HOLD_DELAY_MAX);
     return hold_delay_setting;
 }
 
 uint8_t TMC2209_holdDelaySettingToPercent(uint8_t hold_delay_setting) {
-    uint8_t percent = map(hold_delay_setting,
-                          HOLD_DELAY_MIN,
-                          HOLD_DELAY_MAX,
-                          PERCENT_MIN,
-                          PERCENT_MAX);
+    uint8_t percent = map(hold_delay_setting, HOLD_DELAY_MIN, HOLD_DELAY_MAX, PERCENT_MIN, PERCENT_MAX);
     return percent;
 }
 

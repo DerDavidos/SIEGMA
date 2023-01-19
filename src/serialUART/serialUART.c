@@ -1,3 +1,9 @@
+/** ----------------------------------------------------------------------------
+ * Adapted from:
+ *  https://github.com/earlephilhower/arduino-pico
+ *  https://github.com/earlephilhower/arduino-pico/blob/master/cores/rp2040/SerialUART.cpp
+*** ---------------------------------------------------------------------------- */
+
 /*
     Serial-over-UART for the Raspberry Pi Pico RP2040
 
@@ -18,7 +24,7 @@
     Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 */
 
-#include "SerialUART.h"
+#include "serialUART.h"
 #include <hardware/uart.h>
 #include <hardware/gpio.h>
 #include <stdlib.h>

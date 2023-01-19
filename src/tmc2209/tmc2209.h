@@ -7,7 +7,7 @@
 #define TMC2209_H
 
 #include <stdbool.h>
-#include "SerialUART.h"
+#include "serialUART.h"
 
 typedef enum SerialAddress {
     SERIAL_ADDRESS_0 = 0,
@@ -445,7 +445,7 @@ bool TMC2209_isCommunicating(TMC2209_t *tmc2209);
 
 // driver may be communicating but not setup if driver power is lost then
 // restored after setup so that defaults are loaded instead of setup options
-bool isCommunicatingButNotSetup(TMC2209_t *tmc2209);
+bool TMC2209_isCommunicatingButNotSetup(TMC2209_t *tmc2209);
 
 // driver must be enabled before use it is disabled by default
 void TMC2209_enable(TMC2209_t *tmc2209);

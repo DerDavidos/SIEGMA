@@ -1,0 +1,72 @@
+#include "dispenser.h"
+#include "serialUART.h"
+
+#include "hardware/watchdog.h"
+#include "pico/bootrom.h"
+#include "pico/stdio.h"
+#include "pico/time.h"
+#include "pico/stdio_usb.h"
+#include "pico/printf.h"
+
+#define SERIAL_UART SERIAL2
+
+void initPico(bool waitForUSBConnection) {
+    if (watchdog_enable_caused_reboot())
+        reset_usb_boot(0, 0);
+
+    stdio_init_all(); // init usb
+    sleep_ms(2500); // Time to make sure everything is ready
+
+    if (waitForUSBConnection)
+        while ((!stdio_usb_connected())); // waits for usb connection
+}
+
+int main() {
+    initPico(true);
+
+    printf("First write Stepper ID (0-%i) and then command: Setup (s), Up (u), Down (d), Stop(s), Get Direction (g)\n",
+           NUMBER_OF_DISPENSERS);
+
+    while (true) {
+        uint32_t id = getchar_timeout_us(10000000); // 10 seconds wait
+        if (id == PICO_ERROR_TIMEOUT)
+            continue;
+        id = id - 48;
+        if (id > NUMBER_OF_DISPENSERS - 1) {
+            printf("Wrong ID\n");
+            continue;
+        }
+        uint32_t command = getchar_timeout_us(10000000); // 10 seconds wait
+        if (command == PICO_ERROR_TIMEOUT) {
+            printf("No command received\n");
+            continue;
+        }
+        switch (command) {
+            case 's':
+                printf("Setup dispenser: %lu\n", id);
+                setUpDispenser(id, SERIAL_UART);
+                break;
+            case 'u':
+                printf("Move dispenser up: %lu\n", id);
+                moveDispenserUp(id);
+                break;
+            case 'd':
+                printf("Move dispenser down: %lu\n", id);
+                moveDispenserDown(id);
+                break;
+            case 'h':
+                printf("Stop dispenser: %lu\n", id);
+                stopDispenser(id);
+                break;
+            case 'g':
+                printf("Direction of dispenser: %lu: %i (UP: %i, DOWN: %i, STOP: %i)\n", id, getDispenserDirection(id),
+                       UP, DOWN, STOP);
+                break;
+            default:
+                printf("Wrong Command!\n");
+                printf("First write Stepper ID (0-%i) and then command: Setup (s), Up (u), Down (d), Halt(h), Get Direction (g)\n",
+                       NUMBER_OF_DISPENSERS - 1);
+        }
+        printf("\n");
+    }
+}
