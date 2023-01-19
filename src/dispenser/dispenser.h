@@ -11,6 +11,7 @@
 #define MS_DISPENSERS_ARE_MOVING_UP 6000
 #define STEPS_DISPENSERS_ARE_MOVING_UP (MS_DISPENSERS_ARE_MOVING_UP / DISPENSER_STEP_TIME_MS)
 
+// error check if the number of dispenser exceeds its limits
 #if NUMBER_OF_DISPENSERS > 4
 #error ONLY 4 DISPENERS AVAILABLE
 #endif
