@@ -22,6 +22,7 @@ typedef struct dispenserState {
     struct dispenserState (*function)(struct Dispenser *);
 } DispenserState_t;
 
+// Dispenser struct holding all important values to control the stepper driver
 typedef struct Dispenser {
     SerialAddress_t address;
     uint16_t stepsDone;
@@ -32,12 +33,24 @@ typedef struct Dispenser {
     SerialUART_t uart;
 } Dispenser_t;
 
+// initialize a new Dispenser with all of its components (Uart, Limit Switch)
+// @param1 The Address for the uart connection (1, 2, 3, 4)
+// @param2 which Uart Pins will be used
+// @return an initialized Dispenser
 Dispenser_t createDispenser(SerialAddress_t address, SerialUART_t uart);
 
+// no usage
 void startDispenser(Dispenser_t *dispenser);
 
+// Dispenser cycles to the next state
+// @param the Dispenser to take action on
+// @return void
 void dispenserDoStep(Dispenser_t *dispenser);
 
+// Check if all Dispenser are sleeping
+// @param1 an array holding all Dispenser
+// @param2 The amount of initialized Dispenser
+// @return true if all Dispenser are in a sleeping state
 bool allDispenserInSleepState(Dispenser_t *dispenser, uint8_t number_of_dispenser);
 
 void setDispenserHaltTime(Dispenser_t *dispenser, uint32_t haltTime);
