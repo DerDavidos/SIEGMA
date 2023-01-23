@@ -8,6 +8,7 @@
 #endif //SIEGMA_RONDELL_H
 
 #include <stdint.h>
+#include "motor.h"
 
 enum RondellPos {
     Pos0 = 0,
@@ -24,11 +25,23 @@ enum RondellState {
     RONDELL_MOVING_CLOCKWISE
 };
 
-void setUpRondellAll(void);
+typedef struct Rondell Rondell_t;
 
-void moveRondellCounterClockwise(uint8_t id);
+typedef struct Rondell {
+    SerialAddress_t address;
+    enum RondellState state;
+    enum RondellPos position;
+    Motor_t motor;
+    SerialUART_t uart;
+} Rondell_t;
 
-void moveRondellClockwise(uint8_t id);
+Rondell_t createRondell(SerialAddress_t address, SerialUART_t uart);
+
+void setUpRondell(SerialAddress_t address, SerialUART_t uart);
+
+void moveRondellCounterClockwise(void);
+
+void moveRondellClockwise(void);
 
 void stopRondell(void);
 

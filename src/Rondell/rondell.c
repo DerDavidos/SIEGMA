@@ -7,56 +7,46 @@
 #include "pico/time.h"
 #include "hardware/adc.h"
 #include "TMC2209.h"
-#include "SerialUART.h"
+#include "serialUART.h"
 
 #include "rondell.h"
-#include "touchSensor.h"
+#include "limitSwitch.h"
 
-TMC2209_t TMCS_RONDELL[2] = {};
+static Rondell_t rondell;
 
-static enum RondellPos rondell_pos = UNDEFINED;
-static enum RondellState rondell_state = RONDELL_SLEEP;
+Rondell_t createRondell(SerialAddress_t address, SerialUART_t uart) {
+    rondell.address = address;
+    rondell.uart = uart;
+    rondell.position = UNDEFINED;
+    rondell.state = RONDELL_SLEEP;
+    rondell.motor = createMotor(address, uart);
 
-void setUpRondell_intern(TMC2209_t *tmc, SerialAddress_t address) {
-    TMC2209_setup(tmc, SERIAL2, SERIAL_BAUD_RATE, address);
-
-    while (!TMC2209_isSetupAndCommunicating(tmc)) {
-        printf("Setup: Stepper driver with address %i NOT setup and communicating!\n", address);
-        sleep_ms(1000);
-        TMC2209_setup(tmc, SERIAL2, SERIAL_BAUD_RATE, address);
-    }
-    printf("Setup: Stepper driver with address %i setup and communicating!\n", address);
-    TMC2209_setRunCurrent(tmc, 100);
-    TMC2209_enable(tmc);
+    return rondell;
 }
 
-void setUpRondell(uint8_t id) {
-    setUpRondell_intern(&TMCS_RONDELL[id], id);
+void setUpRondell(SerialAddress_t address, SerialUART_t uart) {
+    createRondell(address, uart);
 }
 
-void setUpRondellAll(void) {
-    for (int i = 0; i < 2; ++i) {
-        setUpRondell(i);
-    }
-}
-
-void moveRondellCounterClockwise(uint8_t id) {
-    TMC2209_moveAtVelocity(&TMCS_RONDELL[id], -30000);
+void moveRondellCounterClockwise(void) {
+    moveMotorUp(&rondell.motor);
 }
 
 
 //Needs to be deleted perhaps since there might be no use for this function.
-void moveRondellClockwise(uint8_t id) {
-    TMC2209_moveAtVelocity(&TMCS_RONDELL[id], 30000);
+void moveRondellClockwise(void) {
+    moveMotorDown(&rondell.motor);
 }
 
 void stopRondell(void) {
-    TMC2209_moveAtVelocity(&TMCS_RONDELL[0], 0);
+    stopMotor(&rondell.motor);
+    disableMotorByPin(&rondell.motor);
 }
 
 void startRondell(void) {
-    moveRondellCounterClockwise(0);
-    rondell_state = RONDELL_MOVING_COUNTER_CLOCKWISE;
+    enableMotorByPin(&rondell.motor);
+    moveRondellCounterClockwise();
+    rondell.state = RONDELL_MOVING_COUNTER_CLOCKWISE;
     sleep_ms(500);
 }
 
@@ -84,7 +74,7 @@ void passLongHole(void) {
 }
 
 void findLongHoleAndPassIt(void) {
-    if (rondell_state != RONDELL_MOVING_COUNTER_CLOCKWISE || rondell_state != RONDELL_MOVING_CLOCKWISE) {
+    if (rondell.state != RONDELL_MOVING_COUNTER_CLOCKWISE || rondell.state != RONDELL_MOVING_CLOCKWISE) {
         startRondell();
     }
     bool longHoleFound = false;
@@ -128,11 +118,11 @@ void identifyPosition(void) {
     // If one of the first two if statements evaluates to true the position can be determined immediately due
     // to the rondell's shape.
     if (counterLongHoleToFirstHole >= 1300 && counterLongHoleToFirstHole <= 1500) {
-        rondell_pos = Pos0;
+        rondell.position = Pos0;
         return;
     }
     if (counterLongHoleToFirstHole >= 700 && counterLongHoleToFirstHole <= 900) {
-        rondell_pos = Pos3;
+        rondell.position = Pos3;
         return;
     }
 
@@ -143,10 +133,11 @@ void identifyPosition(void) {
         passBrightPeriod(600, 0, 10);
         passDarkPeriod(600, &counterFirstHoleToSecondHole, 10);
         if (counterFirstHoleToSecondHole >= 200 && counterFirstHoleToSecondHole<= 400) {
-            rondell_pos = Pos1;
+            rondell.position = Pos1;
             return;
         }
-        rondell_pos = Pos2;
+        // TO DO : IF STATEMENT FOR POS 2
+        rondell.position = Pos2;
         return;
     }
 }
@@ -154,7 +145,7 @@ void identifyPosition(void) {
 int8_t moveRondellToKeyPosition(void) {
     findLongHoleAndPassIt();
     identifyPosition();
-    switch (rondell_pos) {
+    switch (rondell.position) {
         case Pos0:
             passBrightPeriod(600, 0, 1);
             return 0;
@@ -180,9 +171,9 @@ int8_t moveRondellToKeyPosition(void) {
 }
 
 void ResetRondell(void) {
-    if (rondell_state == RONDELL_SLEEP || rondell_state == RONDELL_IN_KEY_POS) {
+    if (rondell.state == RONDELL_SLEEP || rondell.state == RONDELL_IN_KEY_POS) {
         startRondell();
-        rondell_state = RONDELL_MOVING_COUNTER_CLOCKWISE;
+        rondell.state = RONDELL_MOVING_COUNTER_CLOCKWISE;
     }
     moveRondellToKeyPosition();
     stopRondell();
@@ -190,24 +181,24 @@ void ResetRondell(void) {
 
 void moveToDispenserWithId(enum RondellPos positionToDriveTo) {
 
-    if (!(rondell_state == RONDELL_IN_KEY_POS)) {
+    if (!(rondell.state == RONDELL_IN_KEY_POS)) {
         moveRondellToKeyPosition();
-        rondell_state = RONDELL_IN_KEY_POS;
+        rondell.state = RONDELL_IN_KEY_POS;
     }
 
-    if (positionToDriveTo == rondell_pos) {
+    if (positionToDriveTo == rondell.position) {
         return;
     }
 
     bool reachedDesiredPosition = false;
     while(!reachedDesiredPosition) {
         moveRondellToKeyPosition();
-        if (rondell_pos == positionToDriveTo) reachedDesiredPosition = true;
+        if (rondell.position == positionToDriveTo) reachedDesiredPosition = true;
     }
-    rondell_state = RONDELL_IN_KEY_POS;
+    rondell.state = RONDELL_IN_KEY_POS;
     stopRondell();
 }
 
 uint8_t getRondellPosition(void) {
-    return rondell_pos;
+    return rondell.position;
 }

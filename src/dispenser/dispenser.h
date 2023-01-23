@@ -3,7 +3,7 @@
 
 #include <stdint.h>
 #include "serialUART.h"
-#include "motor.h"
+#include "motor/motor.h"
 #include "limitSwitch.h"
 
 #define NUMBER_OF_DISPENSERS 4

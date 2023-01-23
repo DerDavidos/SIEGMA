@@ -11,7 +11,7 @@
 #define MOTOR_ENABLE_PINT_2 28
 #define MOTOR_ENABLE_PINT_3 29
 
-#define MOTOR_SPEED 50000
+#define MOTOR_SPEED 30000
 
 typedef struct Motor {
     uint8_t enablePin;
