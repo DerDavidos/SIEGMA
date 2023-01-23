@@ -2,7 +2,6 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "hardware/gpio.h"
 #include "pico/stdio.h"
 #include "pico/time.h"
 #include "pico/bootrom.h"
@@ -12,14 +11,11 @@
 
 #include "rondell.h"
 #include "Dispenser.h"
-#include "limitSwitch.h"
 
 #define MAX_SLEEP_INPUT 5
 
 
 #define INPUT_BUFFER_LEN 26
-
-#define TIME_DISPENSERS_ARE_MOVING_UP 5000
 
 Dispenser_t dispenser[1];
 
@@ -83,6 +79,8 @@ void processMessage(char *message, unsigned message_length) {
         printf("stepper %i: %d\n", i, dispenserHaltTimes[i]);
     }
 
+    // Check whether dispenser halt time is > 0: if yes move to that dispenser and yield the drink.
+    // When final dispenser halt time is processed, the rondell stops.
     for (uint8_t i = 0; i < NUMBER_OF_DISPENSERS; i++) {
         if (dispenserHaltTimes[i] > 0) {
             moveToDispenserWithId(i);
@@ -92,80 +90,25 @@ void processMessage(char *message, unsigned message_length) {
             } while (allDispenserInSleepState(dispenser, 1));
         }
     }
+    stopRondell();
+}
 
-
-    /*int numberThatNeedsToBeTriggered = 0;
-
-    for (int i = 0; i < NUMBER_OF_DISPENSERS; ++i) {
-        if (dispenserHaltTimes[i] > 0) {
-            moveToDispenserWithId(i);
-            moveDispenserUp(1);
-            sleep_ms(TIME_DISPENSERS_ARE_MOVING_UP + dispenserHaltTimes[i]);
-            moveDispenserDown(1);
-            while (!touchSensorIsClosed(0)) {
-                sleep_ms(10);
-            }
-            stopDispenser(1);
-        }
-    }
-
-    sleep_ms(TIME_DISPENSERS_ARE_MOVING_UP); // Let selected motors move
-
-    for (int i = 0; i < NUMBER_OF_DISPENSERS; ++i) {
-        if (!dispenserReady[i])
-            stopDispenser(i);
-    }
-
-    bool dispenserIsGoingDown[NUMBER_OF_DISPENSERS] = {[0 ... NUMBER_OF_DISPENSERS - 1] = false};
-    int timeElapsed = 0;
-
-    while (numberThatNeedsToBeTriggered > 0) {
-        for (int i = 0; i < NUMBER_OF_DISPENSERS; ++i) {
-            if (!dispenserReady[i]) {
-                if (dispenserIsGoingDown[i]) {
-                    if (touchSensorIsClosed(i)) {
-                        --numberThatNeedsToBeTriggered;
-                        stopDispenser(i);
-                        dispenserReady[i] = true;
-                    }
-                } else if (timeElapsed >= dispenserHaltTimes[i]) {
-                    moveDispenserDown(i);
-                    dispenserIsGoingDown[i] = true;
-                }
-            }
-        }
-
-        sleep_ms(10);
-        timeElapsed += 10;
-    }*/
+void initialize_adc(uint8_t gpio, uint8_t input) {
+    adc_init();
+    adc_gpio_init(gpio);
+    adc_select_input(input);
 }
 
 int main() {
     initPico(false);
 
-    adc_init();
-    adc_gpio_init(28);
-    adc_select_input(0);
+    initialize_adc(28,2);
 
-    //setUpTouchSensor(0);
-
-    /*dispenser[0] = createDispenser(1, SERIAL2);
+    dispenser[0] = createDispenser(1, SERIAL2);
 
     setUpRondell(0,SERIAL2);
 
-    moveToDispenserWithId(Pos2);
-
-    printf("DISPENSER IN POSITION, ADC: %d\n", adc_read());
-    printf("DISPENSER POSITION NOW: %u\n", getRondellPosition());
-
-    stopRondell();*/
-
-    while (1) {
-        printf("ADC VAL: %u\n", adc_read());
-        sleep_ms(500);
-    }
-
-    /*char *input_buf = malloc(INPUT_BUFFER_LEN);
+    char *input_buf = malloc(INPUT_BUFFER_LEN);
     memset(input_buf, '\0', INPUT_BUFFER_LEN);
     unsigned characterCounter = 0;
 
@@ -199,5 +142,5 @@ int main() {
             input_buf[characterCounter] = input;
             ++characterCounter;
         }
-    }*/
+    }
 }
