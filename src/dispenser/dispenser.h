@@ -6,9 +6,9 @@
 #include "motor.h"
 #include "limitSwitch.h"
 
-#define NUMBER_OF_DISPENSERS 4
+#define NUMBER_OF_DISPENSERS 1
 #define DISPENSER_STEP_TIME_MS 10
-#define MS_DISPENSERS_ARE_MOVING_UP 6000
+#define MS_DISPENSERS_ARE_MOVING_UP 3700
 #define STEPS_DISPENSERS_ARE_MOVING_UP (MS_DISPENSERS_ARE_MOVING_UP / DISPENSER_STEP_TIME_MS)
 
 // error check if the number of dispenser exceeds its limits
@@ -31,6 +31,7 @@ typedef struct Dispenser {
     Motor_t motor;
     limitSwitch_t limitSwitch;
     SerialUART_t uart;
+    int direction;
 } Dispenser_t;
 
 // initialize a new Dispenser with all of its components (Uart, Limit Switch)
@@ -62,5 +63,7 @@ static DispenserState_t upState(Dispenser_t *dispenser);
 static DispenserState_t topState(Dispenser_t *dispenser);
 
 static DispenserState_t downState(Dispenser_t *dispenser);
+
+static DispenserState_t errorState(Dispenser_t *dispenser);
 
 #endif //SIEGMA_DISPENSER_H

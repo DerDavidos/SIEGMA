@@ -47,6 +47,10 @@ void setUpMotor(Motor_t *motor, SerialAddress_t address, SerialUART_t uart) {
     TMC2209_enable(&motor->tmc2209);
 }
 
+bool motorIsCommunicating(Motor_t *motor) {
+    return TMC2209_isSetupAndCommunicating(&motor->tmc2209);
+}
+
 void enableMotorByPin(Motor_t *motor) {
     gpio_pull_down(motor->enablePin);
 }

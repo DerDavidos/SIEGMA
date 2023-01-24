@@ -6,10 +6,10 @@
 
 #include <stdint.h>
 
-#define MOTOR_ENABLE_PINT_0 26
-#define MOTOR_ENABLE_PINT_1 27
-#define MOTOR_ENABLE_PINT_2 28
-#define MOTOR_ENABLE_PINT_3 29
+#define MOTOR_ENABLE_PINT_0 2
+#define MOTOR_ENABLE_PINT_1 3
+#define MOTOR_ENABLE_PINT_2 6
+#define MOTOR_ENABLE_PINT_3 7
 
 #define MOTOR_SPEED 50000
 
@@ -32,5 +32,7 @@ void moveMotorDown(Motor_t *motor);
 void stopMotor(Motor_t *motor);
 
 Motor_t createMotor(SerialAddress_t address, SerialUART_t uart);
+
+bool motorIsCommunicating(Motor_t *motor);
 
 #endif //SIEGMA_MOTOR_H

@@ -67,10 +67,9 @@ void TMC2209_setup(TMC2209_t *tmc2209, SerialUART_t serial, uint32_t serial_baud
     TMC2209_readAndStoreRegisters(tmc2209);
     TMC2209_minimizeMotorCurrent(tmc2209);
     TMC2209_disable(tmc2209);
+
     TMC2209_disableAutomaticCurrentScaling(tmc2209);
     TMC2209_disableAutomaticGradientAdaptation(tmc2209);
-
-    TMC2209_enableCoolStep(tmc2209, SEMIN_MIN, SEMAX_MAX);
 
     if (!TMC2209_isSetupAndCommunicating(tmc2209))
         tmc2209->blocking = true;

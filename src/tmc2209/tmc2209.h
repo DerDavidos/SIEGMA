@@ -251,6 +251,7 @@ const static uint8_t PWM_GRAD_MIN = 0;
 const static uint8_t PWM_GRAD_MAX = 255;
 const static uint8_t PWM_GRAD_DEFAULT = 0x14;
 
+
 typedef struct TMC2209 {
     bool blocking;
     SerialUART_t *serial_ptr;
@@ -287,5 +288,7 @@ bool TMC2209_disabledByInputPin(TMC2209_t *tmc2209);
 void TMC2209_setRunCurrent(TMC2209_t *tmc2209, uint8_t percent);
 
 void TMC2209_moveAtVelocity(TMC2209_t *tmc2209, int32_t microsteps_per_period);
+
 void TMC2209_disable(TMC2209_t *tmc2209);
+
 #endif

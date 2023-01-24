@@ -1,10 +1,21 @@
 #include "dispenser.h"
+#include "pico/time.h"
 #include <stdio.h>
 
 static DispenserState_t sleepState_t = (DispenserState_t) {.function=&sleepState};
 static DispenserState_t upState_t = (DispenserState_t) {.function=&upState};
 static DispenserState_t topState_t = (DispenserState_t) {.function=&topState};
 static DispenserState_t downState_t = (DispenserState_t) {.function=&downState};
+static DispenserState_t errorState_t = (DispenserState_t) {.function=&errorState};
+
+void resetDispenserPosition(Dispenser_t *dispenser) {
+    moveMotorUp(&(*dispenser).motor);
+    while (limitSwitchIsClosed((*dispenser).limitSwitch));
+    moveMotorDown(&(*dispenser).motor);
+    while (!limitSwitchIsClosed((*dispenser).limitSwitch));
+    stopMotor(&(*dispenser).motor);
+    disableMotorByPin(&(*dispenser).motor);
+}
 
 Dispenser_t createDispenser(SerialAddress_t address, SerialUART_t uart) {
     Dispenser_t dispenser;
@@ -17,12 +28,19 @@ Dispenser_t createDispenser(SerialAddress_t address, SerialUART_t uart) {
     dispenser.limitSwitch = createLimitSwitch(address);
 
     // Reset Dispenser position
-    moveMotorUp(&dispenser.motor);
-    while (limitSwitchIsClosed(dispenser.limitSwitch));
-    moveMotorDown(&dispenser.motor);
-    while (!limitSwitchIsClosed(dispenser.limitSwitch));
+    resetDispenserPosition(&dispenser);
 
     return dispenser;
+}
+
+static DispenserState_t errorState(Dispenser_t *dispenser) {
+    setUpMotor(&dispenser->motor, dispenser->address, dispenser->uart);
+    if (motorIsCommunicating(&dispenser->motor)) {
+        resetDispenserPosition(dispenser);
+        dispenser->haltSteps = 0;
+        return sleepState_t;
+    }
+    return errorState_t;
 }
 
 static DispenserState_t sleepState(Dispenser_t *dispenser) {
@@ -39,6 +57,8 @@ static DispenserState_t upState(Dispenser_t *dispenser) {
         stopMotor(&dispenser->motor);
         return topState_t;
     }
+    if (!limitSwitchIsClosed(dispenser->limitSwitch))
+        dispenser->stepsDone++;
     return upState_t;
 }
 
@@ -47,6 +67,7 @@ static DispenserState_t topState(Dispenser_t *dispenser) {
         moveMotorDown(&dispenser->motor);
         return downState_t;
     }
+    dispenser->stepsDone++;
     return topState_t;
 }
 
@@ -61,8 +82,10 @@ static DispenserState_t downState(Dispenser_t *dispenser) {
 }
 
 void dispenserDoStep(Dispenser_t *dispenser) {
+    if (!motorIsCommunicating(&dispenser->motor)) {
+        dispenser->state = errorState_t;
+    }
     dispenser->state = dispenser->state.function(dispenser);
-    dispenser->stepsDone++;
 }
 
 void setDispenserHaltTime(Dispenser_t *dispenser, uint32_t haltTime) {
