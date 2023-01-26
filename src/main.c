@@ -100,15 +100,21 @@ void initialize_adc(uint8_t gpio, uint8_t input) {
 }
 
 int main() {
+
     initPico(false);
 
     initialize_adc(28,2);
 
-    dispenser[0] = createDispenser(1, SERIAL2);
 
-    setUpRondell(0,SERIAL2);
 
-    char *input_buf = malloc(INPUT_BUFFER_LEN);
+    dispenser[0] = createDispenser(0, SERIAL2);
+
+    setUpRondell(1,SERIAL2);
+
+    moveToDispenserWithId(Pos3);
+
+
+    /*char *input_buf = malloc(INPUT_BUFFER_LEN);
     memset(input_buf, '\0', INPUT_BUFFER_LEN);
     unsigned characterCounter = 0;
 
@@ -142,5 +148,5 @@ int main() {
             input_buf[characterCounter] = input;
             ++characterCounter;
         }
-    }
+    }*/
 }

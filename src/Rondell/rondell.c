@@ -55,8 +55,8 @@ void passDarkPeriod(uint16_t threshhold, uint32_t *counter, uint16_t duration);
 
 void findLongHole(bool *longHoleFound) {
     int high_counter = 0;
-    passDarkPeriod(600, 0, 10);
-    while(adc_read() > 600) {
+    passDarkPeriod(2500, 0, 10);
+    while(adc_read() > 2500) {
         if(high_counter >= 1000) {
             break;
         }
@@ -70,7 +70,7 @@ void findLongHole(bool *longHoleFound) {
 }
 
 void passLongHole(void) {
-    passBrightPeriod(600, 0, 10);
+    passBrightPeriod(2500, 0, 10);
 }
 
 void findLongHoleAndPassIt(void) {
@@ -113,7 +113,7 @@ void identifyPosition(void) {
     uint32_t counterLongHoleToFirstHole = 100;
     sleep_ms(100);
 
-    passDarkPeriod(600, &counterLongHoleToFirstHole, 10);
+    passDarkPeriod(2500, &counterLongHoleToFirstHole, 10);
 
     // If one of the first two if statements evaluates to true the position can be determined immediately due
     // to the rondell's shape.
@@ -130,8 +130,8 @@ void identifyPosition(void) {
     // there are two areas on the rondell with the same value for "counterLongHoleToFirstHole"
     if (counterLongHoleToFirstHole >= 200 && counterLongHoleToFirstHole <= 400) {
         uint32_t counterFirstHoleToSecondHole = 0;
-        passBrightPeriod(600, 0, 10);
-        passDarkPeriod(600, &counterFirstHoleToSecondHole, 10);
+        passBrightPeriod(2500, 0, 10);
+        passDarkPeriod(2500, &counterFirstHoleToSecondHole, 10);
         if (counterFirstHoleToSecondHole >= 200 && counterFirstHoleToSecondHole<= 400) {
             rondell.position = Pos1;
             return;
@@ -147,23 +147,23 @@ int8_t moveRondellToKeyPosition(void) {
     identifyPosition();
     switch (rondell.position) {
         case Pos0:
-            passBrightPeriod(600, 0, 1);
+            passBrightPeriod(2500, 0, 1);
             return 0;
 
         case Pos1:
-            passBrightPeriod(600, 0, 10);
-            passDarkPeriod(600, 0, 10);
-            passBrightPeriod(600, 0, 1);
+            passBrightPeriod(2500, 0, 10);
+            passDarkPeriod(2500, 0, 10);
+            passBrightPeriod(2500, 0, 1);
             return 0;
 
         case Pos2:
-            passBrightPeriod(600, 0, 1);
+            passBrightPeriod(2500, 0, 1);
             return 0;
 
         case Pos3:
-            passBrightPeriod(600, 0, 10);
-            passDarkPeriod(600, 0, 10);
-            passBrightPeriod(600, 0, 1);
+            passBrightPeriod(2500, 0, 10);
+            passDarkPeriod(2500, 0, 10);
+            passBrightPeriod(2500, 0, 1);
             return 0;
         default:
             return -1;

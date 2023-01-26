@@ -6,10 +6,10 @@
 #include <stdint.h>
 #include <stdbool.h>
 
-#define STEPPER0_LS_PIN 7
-#define STEPPER1_LS_PIN 3
-#define STEPPER2_LS_PIN 6
-#define STEPPER3_LS_PIN 2
+#define STEPPER0_LS_PIN 26
+#define STEPPER1_LS_PIN 27
+#define STEPPER2_LS_PIN 28
+#define STEPPER3_LS_PIN 29
 
 #define LIMIT_SWITCH_0 (limitSwitch_t) {.pin = STEPPER0_LS_PIN}
 #define LIMIT_SWITCH_1 (limitSwitch_t) {.pin = STEPPER1_LS_PIN}
