@@ -21,12 +21,16 @@ Dispenser_t createDispenser(SerialAddress_t address, SerialUART_t uart) {
     while (limitSwitchIsClosed(dispenser.limitSwitch));
     moveMotorDown(&dispenser.motor);
     while (!limitSwitchIsClosed(dispenser.limitSwitch));
+    stopMotor(&dispenser.motor);
+
 
     return dispenser;
 }
 
 static DispenserState_t sleepState(Dispenser_t *dispenser) {
+    printf("halt: %i\n", dispenser->haltSteps);
     if (dispenser->haltSteps > 0) {
+        printf("moving up\n");
         enableMotorByPin(&dispenser->motor);
         moveMotorUp(&dispenser->motor);
         return upState_t;

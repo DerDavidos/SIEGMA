@@ -2,61 +2,55 @@
 // Created by Baran Demir on 09.01.23.
 //
 
-#include <stdio.h>
-
 #include "pico/time.h"
 #include "hardware/adc.h"
 #include "TMC2209.h"
 #include "serialUART.h"
 
 #include "rondell.h"
-#include "limitSwitch.h"
 
 static Rondell_t rondell;
 
-Rondell_t createRondell(SerialAddress_t address, SerialUART_t uart) {
+static void createRondell(SerialAddress_t address, SerialUART_t uart) {
     rondell.address = address;
     rondell.uart = uart;
     rondell.position = UNDEFINED;
     rondell.state = RONDELL_SLEEP;
     rondell.motor = createMotor(address, uart);
-
-    return rondell;
 }
 
 void setUpRondell(SerialAddress_t address, SerialUART_t uart) {
     createRondell(address, uart);
 }
 
-void moveRondellCounterClockwise(void) {
+static void moveRondellCounterClockwise(void) {
     moveMotorUp(&rondell.motor);
 }
 
-
-//Needs to be deleted perhaps since there might be no use for this function.
-void moveRondellClockwise(void) {
+// Perhaps needs to be deleted, since there might be no use
+static void moveRondellClockwise(void) {
     moveMotorDown(&rondell.motor);
 }
 
-void stopRondell(void) {
+static void stopRondell(void) {
     stopMotor(&rondell.motor);
     disableMotorByPin(&rondell.motor);
 }
 
-void startRondell(void) {
+static void startRondell(void) {
     enableMotorByPin(&rondell.motor);
     moveRondellCounterClockwise();
     rondell.state = RONDELL_MOVING_COUNTER_CLOCKWISE;
     sleep_ms(500);
 }
 
-void passBrightPeriod(uint16_t threshhold, uint32_t *counter, uint16_t duration);
-void passDarkPeriod(uint16_t threshhold, uint32_t *counter, uint16_t duration);
+static void passBrightPeriod(uint16_t threshold, uint16_t duration);
+static void passDarkPeriod(uint16_t threshold, uint32_t *counter, uint16_t duration);
 
-void findLongHole(bool *longHoleFound) {
+static void findLongHole(bool *longHoleFound) {
     int high_counter = 0;
-    passDarkPeriod(2500, 0, 10);
-    while(adc_read() > 2500) {
+    passDarkPeriod(2500, 0, 5);
+    while(adc_read() < 2500) {
         if(high_counter >= 1000) {
             break;
         }
@@ -69,11 +63,11 @@ void findLongHole(bool *longHoleFound) {
     }
 }
 
-void passLongHole(void) {
-    passBrightPeriod(2500, 0, 10);
+static void passLongHole(void) {
+    passBrightPeriod(2500, 10);
 }
 
-void findLongHoleAndPassIt(void) {
+static void findLongHoleAndPassIt(void) {
     if (rondell.state != RONDELL_MOVING_COUNTER_CLOCKWISE || rondell.state != RONDELL_MOVING_CLOCKWISE) {
         startRondell();
     }
@@ -87,11 +81,13 @@ void findLongHoleAndPassIt(void) {
 }
 
 
-// The following two functions check whether the ADC reads above/below a certain value. So long as that
-// value is read, the rondell keeps moving.
-
-void passDarkPeriod(uint16_t threshhold, uint32_t *counter, uint16_t duration) {
-    while (adc_read() < threshhold) {
+/* The following two functions check whether the ADC reads above/below a certain value. So long as that
+/ value is read, the rondell keeps moving.
+ The values may seem confusing; the reader might think that "adc_read() > 2500" in "passDARKPeriod" does not make sense
+ but this is necessary because of a hardware restriction that could not be changed anymore.
+ */
+static void passDarkPeriod(uint16_t threshold, uint32_t *counter, uint16_t duration) {
+    while (adc_read() > threshold) {
         if (counter) {
             *counter += duration;
         }
@@ -99,84 +95,97 @@ void passDarkPeriod(uint16_t threshhold, uint32_t *counter, uint16_t duration) {
     }
 }
 
-void passBrightPeriod(uint16_t threshhold, uint32_t *counter, uint16_t duration) {
-    while (adc_read() > threshhold) {
-        if(counter) {
-            *counter += duration;
-        }
+static void passBrightPeriod(uint16_t threshold, uint16_t duration) {
+    while (adc_read() < threshold) {
         sleep_ms(duration);
     }
 }
 
-void identifyPosition(void) {
-    // The next two lines ensure that the long hole is really passed and counts the time for that period.
+
+/*
+The idea for the algorithm of "identify position" is to determine time differences between certain areas on the rondell.
+Tests have shown these values to be quite stable. There is a tolerance of ±100 for each critical value, though tests
+have shown that a lesser tolerance probably would have worked too.
+*/
+static void identifyPosition(void) {
+    // The next two lines ensure a proper transition from the long hole and counts the time for that period.
     uint32_t counterLongHoleToFirstHole = 100;
     sleep_ms(100);
 
     passDarkPeriod(2500, &counterLongHoleToFirstHole, 10);
 
+    sleep_ms(25); // this line ensures a smooth transition from the dark period to the first hole.
+
     // If one of the first two if statements evaluates to true the position can be determined immediately due
     // to the rondell's shape.
-    if (counterLongHoleToFirstHole >= 1300 && counterLongHoleToFirstHole <= 1500) {
+    if (counterLongHoleToFirstHole >= 700 && counterLongHoleToFirstHole <= 900) {
         rondell.position = Pos0;
         return;
     }
-    if (counterLongHoleToFirstHole >= 700 && counterLongHoleToFirstHole <= 900) {
+    if (counterLongHoleToFirstHole >= 400 && counterLongHoleToFirstHole <= 600) {
         rondell.position = Pos3;
         return;
     }
 
     // If the first two if statements were not evaluated to true, another two if statements are necessary because
     // there are two areas on the rondell with the same value for "counterLongHoleToFirstHole"
-    if (counterLongHoleToFirstHole >= 200 && counterLongHoleToFirstHole <= 400) {
-        uint32_t counterFirstHoleToSecondHole = 0;
-        passBrightPeriod(2500, 0, 10);
+    if (counterLongHoleToFirstHole >= 100 && counterLongHoleToFirstHole <= 300) {
+        passBrightPeriod(2500, 10);
+
+        //ensure hole has really been left and count time for that period
+        uint32_t counterFirstHoleToSecondHole = 100;
+        sleep_ms(100);
+
         passDarkPeriod(2500, &counterFirstHoleToSecondHole, 10);
-        if (counterFirstHoleToSecondHole >= 200 && counterFirstHoleToSecondHole<= 400) {
+        sleep_ms(25); // again : extra sleep, for smoother transition.
+
+        if (counterFirstHoleToSecondHole >= 20 && counterFirstHoleToSecondHole<= 220) {
             rondell.position = Pos1;
             return;
         }
-        // TO DO : IF STATEMENT FOR POS 2
-        rondell.position = Pos2;
-        return;
+        if (counterFirstHoleToSecondHole >= 400 && counterFirstHoleToSecondHole <= 600) {
+            rondell.position = Pos2;
+            return;
+        }
     }
 }
 
-int8_t moveRondellToKeyPosition(void) {
+
+/* This function moves the dispenser in alignment with the hopper.
+ After each passBrightPeriod/passDarkPeriod there is some extra sleep time to ensure a smooth transition.
+The value may seem arbitrary; this is because of some slight inaccuracies of the rondell-pattern.
+Depending on the position there might be nothing further to do.
+ */
+static int8_t moveRondellToKeyPosition() {
     findLongHoleAndPassIt();
     identifyPosition();
     switch (rondell.position) {
         case Pos0:
-            passBrightPeriod(2500, 0, 1);
             return 0;
 
         case Pos1:
-            passBrightPeriod(2500, 0, 10);
+            passBrightPeriod(2500, 10);
+            sleep_ms(100);
             passDarkPeriod(2500, 0, 10);
-            passBrightPeriod(2500, 0, 1);
+            sleep_ms(50);
+            passBrightPeriod(2500, 10);
+            sleep_ms(50);
             return 0;
 
         case Pos2:
-            passBrightPeriod(2500, 0, 1);
             return 0;
 
         case Pos3:
-            passBrightPeriod(2500, 0, 10);
+            passBrightPeriod(2500, 10);
+            sleep_ms(100);
             passDarkPeriod(2500, 0, 10);
-            passBrightPeriod(2500, 0, 1);
+            sleep_ms(50);
+            passBrightPeriod(2500, 10);
+            sleep_ms(50);
             return 0;
         default:
             return -1;
     }
-}
-
-void ResetRondell(void) {
-    if (rondell.state == RONDELL_SLEEP || rondell.state == RONDELL_IN_KEY_POS) {
-        startRondell();
-        rondell.state = RONDELL_MOVING_COUNTER_CLOCKWISE;
-    }
-    moveRondellToKeyPosition();
-    stopRondell();
 }
 
 void moveToDispenserWithId(enum RondellPos positionToDriveTo) {
@@ -185,6 +194,7 @@ void moveToDispenserWithId(enum RondellPos positionToDriveTo) {
         moveRondellToKeyPosition();
         rondell.state = RONDELL_IN_KEY_POS;
     }
+
 
     if (positionToDriveTo == rondell.position) {
         return;
@@ -197,8 +207,4 @@ void moveToDispenserWithId(enum RondellPos positionToDriveTo) {
     }
     rondell.state = RONDELL_IN_KEY_POS;
     stopRondell();
-}
-
-uint8_t getRondellPosition(void) {
-    return rondell.position;
 }

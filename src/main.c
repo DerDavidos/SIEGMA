@@ -83,6 +83,7 @@ void processMessage(char *message, unsigned message_length) {
     // When final dispenser halt time is processed, the rondell stops.
     for (uint8_t i = 0; i < NUMBER_OF_DISPENSERS; i++) {
         if (dispenserHaltTimes[i] > 0) {
+            setDispenserHaltTime(dispenser, dispenserHaltTimes[i]);
             moveToDispenserWithId(i);
             do {
                 dispenserDoStep(dispenser);
@@ -90,7 +91,6 @@ void processMessage(char *message, unsigned message_length) {
             } while (allDispenserInSleepState(dispenser, 1));
         }
     }
-    stopRondell();
 }
 
 void initialize_adc(uint8_t gpio, uint8_t input) {
@@ -105,16 +105,11 @@ int main() {
 
     initialize_adc(28,2);
 
-
-
-    dispenser[0] = createDispenser(0, SERIAL2);
+    // dispenser[0] = createDispenser(0, SERIAL2);
 
     setUpRondell(1,SERIAL2);
 
-    moveToDispenserWithId(Pos3);
-
-
-    /*char *input_buf = malloc(INPUT_BUFFER_LEN);
+    char *input_buf = malloc(INPUT_BUFFER_LEN);
     memset(input_buf, '\0', INPUT_BUFFER_LEN);
     unsigned characterCounter = 0;
 
@@ -148,5 +143,5 @@ int main() {
             input_buf[characterCounter] = input;
             ++characterCounter;
         }
-    }*/
+    }
 }

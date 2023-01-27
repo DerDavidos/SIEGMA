@@ -6,12 +6,12 @@
 
 #include <stdint.h>
 
-#define MOTOR_ENABLE_PINT_0 26
-#define MOTOR_ENABLE_PINT_1 27
-#define MOTOR_ENABLE_PINT_2 28
-#define MOTOR_ENABLE_PINT_3 29
+#define MOTOR_ENABLE_PINT_0 2
+#define MOTOR_ENABLE_PINT_1 3
+#define MOTOR_ENABLE_PINT_2 6
+#define MOTOR_ENABLE_PINT_3 7
 
-#define MOTOR_SPEED 30000
+#define MOTOR_SPEED 50000
 
 typedef struct Motor {
     uint8_t enablePin;
