@@ -68,17 +68,6 @@ void processMessage(char *message, unsigned message_length) {
     dispenserHaltTimes[3] = parseInputString(message + semi1Pos + semi2Pos + semi3Pos + 3,
                                              message_length - (semi1Pos + semi2Pos + semi3Pos + 3), &semi4Pos);
 
-    printf("stepper0_pos: %d\n", semi1Pos);
-    printf("stepper1_pos: %d\n", semi2Pos);
-    printf("stepper2_pos: %d\n", semi3Pos);
-    printf("stepper3_pos: %d\n", semi4Pos);
-
-    printf("buffer len: %d\n", message_length);
-
-    for (uint8_t i = 0; i < NUMBER_OF_DISPENSERS; i++) {
-        printf("stepper %i: %d\n", i, dispenserHaltTimes[i]);
-    }
-
     // Check whether dispenser halt time is > 0: if yes move to that dispenser and yield the drink.
     // When final dispenser halt time is processed, the rondell stops.
     for (uint8_t i = 0; i < NUMBER_OF_DISPENSERS; i++) {
@@ -105,19 +94,11 @@ int main() {
 
     initialize_adc(28,2);
 
-    // dispenser[0] = createDispenser(0, SERIAL2);
+    dispenser[0] = createDispenser(0, SERIAL2);
 
     setUpRondell(1,SERIAL2);
 
-    for (int i = 0; i < NUMBER_OF_DISPENSERS; i++){
-        moveToDispenserWithId(i);
-        sleep_ms(10000);
-    }
-    while(1) {
-        ;
-    }
-
-    /*char *input_buf = malloc(INPUT_BUFFER_LEN);
+    char *input_buf = malloc(INPUT_BUFFER_LEN);
     memset(input_buf, '\0', INPUT_BUFFER_LEN);
     unsigned characterCounter = 0;
 
@@ -151,5 +132,5 @@ int main() {
             input_buf[characterCounter] = input;
             ++characterCounter;
         }
-    }*/
+    }
 }

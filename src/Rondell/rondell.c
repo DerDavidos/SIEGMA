@@ -16,6 +16,7 @@ static void createRondell(SerialAddress_t address, SerialUART_t uart) {
     rondell.uart = uart;
     rondell.position = UNDEFINED;
     rondell.state = RONDELL_SLEEP;
+    rondell.positionToDriveTo = UNDEFINED;
     rondell.motor = createMotor(address, uart);
 }
 
