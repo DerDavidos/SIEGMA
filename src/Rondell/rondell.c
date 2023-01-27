@@ -168,7 +168,7 @@ static void identifyPosition(void) {
 
 /* This function moves the dispenser in alignment with the hopper.
  After each passBrightPeriod/passDarkPeriod there is some extra sleep time to ensure a smooth transition.
-The value may seem arbitrary; this is because of some slight inaccuracies of the rondell-pattern.
+Some values may seem arbitrary; this is because of some slight inaccuracies of the rondell-pattern.
 Depending on the position there might be nothing further to do.
  */
 static int8_t moveRondellToKeyPosition(void) {
@@ -188,6 +188,7 @@ static int8_t moveRondellToKeyPosition(void) {
             return 0;
 
         case Pos2:
+            passBrightPeriod(2500,10);
             return 0;
 
         case Pos3:

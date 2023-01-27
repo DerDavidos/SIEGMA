@@ -109,7 +109,15 @@ int main() {
 
     setUpRondell(1,SERIAL2);
 
-    char *input_buf = malloc(INPUT_BUFFER_LEN);
+    for (int i = 0; i < NUMBER_OF_DISPENSERS; i++){
+        moveToDispenserWithId(i);
+        sleep_ms(10000);
+    }
+    while(1) {
+        ;
+    }
+
+    /*char *input_buf = malloc(INPUT_BUFFER_LEN);
     memset(input_buf, '\0', INPUT_BUFFER_LEN);
     unsigned characterCounter = 0;
 
@@ -143,5 +151,5 @@ int main() {
             input_buf[characterCounter] = input;
             ++characterCounter;
         }
-    }
+    }*/
 }
