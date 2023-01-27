@@ -31,6 +31,7 @@ typedef struct Rondell {
     SerialAddress_t address;
     enum RondellState state;
     enum RondellPos position;
+    enum RondellPos positionToDriveTo;
     Motor_t motor;
     SerialUART_t uart;
 } Rondell_t;

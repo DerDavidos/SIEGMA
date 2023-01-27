@@ -27,7 +27,6 @@ static void moveRondellCounterClockwise(void) {
     moveMotorUp(&rondell.motor);
 }
 
-// Perhaps needs to be deleted, since there might be no use
 static void moveRondellClockwise(void) {
     moveMotorDown(&rondell.motor);
 }
@@ -37,8 +36,24 @@ static void stopRondell(void) {
     disableMotorByPin(&rondell.motor);
 }
 
+uint8_t calculatePositionDifference(void) {
+    if ((rondell.position - rondell.positionToDriveTo) >= 0) return (rondell.position - rondell.positionToDriveTo);
+    else return -(rondell.position - rondell.positionToDriveTo);
+}
+
+// Depending on the difference between the rondell's current position and its desired position a decision is being
+// made whether to move clockwise or counter-clockwise.
 static void startRondell(void) {
     enableMotorByPin(&rondell.motor);
+    uint8_t positionDifference = calculatePositionDifference();
+    if (positionDifference == 1) {
+        if((rondell.position +1) % 4 == rondell.positionToDriveTo) {
+            moveRondellClockwise();
+            rondell.state = RONDELL_MOVING_CLOCKWISE;
+            sleep_ms(500);
+            return;
+        }
+    }
     moveRondellCounterClockwise();
     rondell.state = RONDELL_MOVING_COUNTER_CLOCKWISE;
     sleep_ms(500);
@@ -156,7 +171,7 @@ static void identifyPosition(void) {
 The value may seem arbitrary; this is because of some slight inaccuracies of the rondell-pattern.
 Depending on the position there might be nothing further to do.
  */
-static int8_t moveRondellToKeyPosition() {
+static int8_t moveRondellToKeyPosition(void) {
     findLongHoleAndPassIt();
     identifyPosition();
     switch (rondell.position) {
@@ -190,21 +205,23 @@ static int8_t moveRondellToKeyPosition() {
 
 void moveToDispenserWithId(enum RondellPos positionToDriveTo) {
 
+    rondell.positionToDriveTo = positionToDriveTo;
+
     if (!(rondell.state == RONDELL_IN_KEY_POS)) {
         moveRondellToKeyPosition();
         rondell.state = RONDELL_IN_KEY_POS;
     }
 
 
-    if (positionToDriveTo == rondell.position) {
+    if (rondell.positionToDriveTo == rondell.position) {
         return;
     }
 
     bool reachedDesiredPosition = false;
     while(!reachedDesiredPosition) {
         moveRondellToKeyPosition();
-        if (rondell.position == positionToDriveTo) reachedDesiredPosition = true;
+        rondell.state = RONDELL_IN_KEY_POS;
+        if (rondell.position == rondell.positionToDriveTo) reachedDesiredPosition = true;
     }
-    rondell.state = RONDELL_IN_KEY_POS;
     stopRondell();
 }
