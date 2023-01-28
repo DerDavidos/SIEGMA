@@ -43,19 +43,19 @@ static void stopRondell(void) {
 
 // Being at position 0/3 and wanting to get to 0/3 is special, because applied to the set {0,1,2,3} some rules of arithmetics are
 // different and therefore need special consideration.
-uint8_t specialPosition(void) {
+static uint8_t specialPosition(void) {
     uint8_t specialPosition;
     (rondell.position == 0 && rondell.positionToDriveTo == 3) || (rondell.position == 3 && rondell.positionToDriveTo == 0) ? (specialPosition = 1) : (specialPosition = 0);
     return specialPosition;
 }
 
-int8_t subtractPositions(void) {
+static int8_t subtractPositions(void) {
     int8_t current_pos = (int8_t) rondell.position;
     int8_t positionToDriveTo = (int8_t) rondell.positionToDriveTo;
     return (current_pos - positionToDriveTo);
 }
 
-uint8_t calculatePositionDifference(void) {
+static uint8_t calculatePositionDifference(void) {
     if (specialPosition()) return 1;
     uint8_t positionDifference;
     ((subtractPositions()) >= 0) ? (positionDifference = subtractPositions()) : (positionDifference = -(subtractPositions()));
