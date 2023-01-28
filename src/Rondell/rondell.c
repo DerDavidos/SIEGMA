@@ -26,10 +26,14 @@ void setUpRondell(SerialAddress_t address, SerialUART_t uart) {
 
 static void moveRondellCounterClockwise(void) {
     moveMotorUp(&rondell.motor);
+    rondell.state = RONDELL_MOVING_COUNTER_CLOCKWISE;
+    sleep_ms(500);
 }
 
 static void moveRondellClockwise(void) {
     moveMotorDown(&rondell.motor);
+    rondell.state = RONDELL_MOVING_CLOCKWISE;
+    sleep_ms(500);
 }
 
 static void stopRondell(void) {
@@ -37,9 +41,25 @@ static void stopRondell(void) {
     disableMotorByPin(&rondell.motor);
 }
 
+// Being at position 0/3 and wanting to get to 0/3 is special, because applied to the set {0,1,2,3} some rules of arithmetics are
+// different and therefore need special consideration.
+uint8_t specialPosition(void) {
+    uint8_t specialPosition;
+    (rondell.position == 0 && rondell.positionToDriveTo == 3) || (rondell.position == 3 && rondell.positionToDriveTo == 0) ? (specialPosition = 1) : (specialPosition = 0);
+    return specialPosition;
+}
+
+int8_t subtractPositions(void) {
+    int8_t current_pos = (int8_t) rondell.position;
+    int8_t positionToDriveTo = (int8_t) rondell.positionToDriveTo;
+    return (current_pos - positionToDriveTo);
+}
+
 uint8_t calculatePositionDifference(void) {
-    if ((rondell.position - rondell.positionToDriveTo) >= 0) return (rondell.position - rondell.positionToDriveTo);
-    else return -(rondell.position - rondell.positionToDriveTo);
+    if (specialPosition()) return 1;
+    uint8_t positionDifference;
+    ((subtractPositions()) >= 0) ? (positionDifference = subtractPositions()) : (positionDifference = -(subtractPositions()));
+    return positionDifference;
 }
 
 // Depending on the difference between the rondell's current position and its desired position a decision is being
@@ -48,16 +68,17 @@ static void startRondell(void) {
     enableMotorByPin(&rondell.motor);
     uint8_t positionDifference = calculatePositionDifference();
     if (positionDifference == 1) {
-        if((rondell.position +1) % 4 == rondell.positionToDriveTo) {
+        if(specialPosition()) {
+            (rondell.positionToDriveTo == 0 && rondell.position == 3) ? moveRondellClockwise() : moveRondellCounterClockwise();
+            return;
+        }
+        // The if-condition may seem arbitrary, but it is not; it results from the corresponding dispenser IDs.
+        if (rondell.positionToDriveTo > rondell.position) {
             moveRondellClockwise();
-            rondell.state = RONDELL_MOVING_CLOCKWISE;
-            sleep_ms(500);
             return;
         }
     }
     moveRondellCounterClockwise();
-    rondell.state = RONDELL_MOVING_COUNTER_CLOCKWISE;
-    sleep_ms(500);
 }
 
 static void passBrightPeriod(uint16_t threshold, uint16_t duration);
