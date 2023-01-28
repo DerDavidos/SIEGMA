@@ -42,8 +42,8 @@ static void stopRondell(void) {
 }
 
 // Being at position 0/3 and wanting to get to 0/3 is special, because applied to the set {0,1,2,3} some rules of arithmetics are
-// different and therefore need special consideration.
-static uint8_t specialPosition(void) {
+// different and therefore need special consideration. Returns a bool.
+static uint8_t specialPositionGiven(void) {
     uint8_t specialPosition;
     (rondell.position == 0 && rondell.positionToDriveTo == 3) || (rondell.position == 3 && rondell.positionToDriveTo == 0) ? (specialPosition = 1) : (specialPosition = 0);
     return specialPosition;
@@ -56,7 +56,7 @@ static int8_t subtractPositions(void) {
 }
 
 static uint8_t calculatePositionDifference(void) {
-    if (specialPosition()) return 1;
+    if (specialPositionGiven()) return 1;
     uint8_t positionDifference;
     ((subtractPositions()) >= 0) ? (positionDifference = subtractPositions()) : (positionDifference = -(subtractPositions()));
     return positionDifference;
@@ -68,7 +68,7 @@ static void startRondell(void) {
     enableMotorByPin(&rondell.motor);
     uint8_t positionDifference = calculatePositionDifference();
     if (positionDifference == 1) {
-        if(specialPosition()) {
+        if(specialPositionGiven()) {
             (rondell.positionToDriveTo == 0 && rondell.position == 3) ? moveRondellClockwise() : moveRondellCounterClockwise();
             return;
         }
@@ -81,12 +81,12 @@ static void startRondell(void) {
     moveRondellCounterClockwise();
 }
 
-static void passBrightPeriod(uint16_t threshold, uint16_t duration);
-static void passDarkPeriod(uint16_t threshold, uint32_t *counter, uint16_t duration);
+static void passBrightPeriod(void);
+static void passDarkPeriod(uint32_t *counter, uint16_t duration);
 
 static void findLongHole(bool *longHoleFound) {
     int high_counter = 0;
-    passDarkPeriod(2500, 0, 5);
+    passDarkPeriod(0, 5);
     while(adc_read() < 2500) {
         if(high_counter >= 1000) {
             break;
@@ -101,7 +101,7 @@ static void findLongHole(bool *longHoleFound) {
 }
 
 static void passLongHole(void) {
-    passBrightPeriod(2500, 10);
+    passBrightPeriod();
 }
 
 static void findLongHoleAndPassIt(void) {
@@ -123,8 +123,8 @@ static void findLongHoleAndPassIt(void) {
  The values may seem confusing; the reader might think that "adc_read() > 2500" in "passDARKPeriod" does not make sense
  but this is necessary because of a hardware restriction that could not be changed anymore.
  */
-static void passDarkPeriod(uint16_t threshold, uint32_t *counter, uint16_t duration) {
-    while (adc_read() > threshold) {
+static void passDarkPeriod(uint32_t *counter, uint16_t duration) {
+    while (adc_read() > 2500) {
         if (counter) {
             *counter += duration;
         }
@@ -132,9 +132,9 @@ static void passDarkPeriod(uint16_t threshold, uint32_t *counter, uint16_t durat
     }
 }
 
-static void passBrightPeriod(uint16_t threshold, uint16_t duration) {
-    while (adc_read() < threshold) {
-        sleep_ms(duration);
+static void passBrightPeriod(void) {
+    while (adc_read() < 2500) {
+        sleep_ms(10);
     }
 }
 
@@ -149,7 +149,7 @@ static void identifyPosition(void) {
     uint32_t counterLongHoleToFirstHole = 100;
     sleep_ms(100);
 
-    passDarkPeriod(2500, &counterLongHoleToFirstHole, 10);
+    passDarkPeriod(&counterLongHoleToFirstHole, 10);
 
     sleep_ms(25); // this line ensures a smooth transition from the dark period to the first hole.
 
@@ -167,13 +167,13 @@ static void identifyPosition(void) {
     // If the first two if statements were not evaluated to true, another two if statements are necessary because
     // there are two areas on the rondell with the same value for "counterLongHoleToFirstHole"
     if (counterLongHoleToFirstHole >= 100 && counterLongHoleToFirstHole <= 300) {
-        passBrightPeriod(2500, 10);
+        passBrightPeriod();
 
         //ensure hole has really been left and count time for that period
         uint32_t counterFirstHoleToSecondHole = 100;
         sleep_ms(100);
 
-        passDarkPeriod(2500, &counterFirstHoleToSecondHole, 10);
+        passDarkPeriod(&counterFirstHoleToSecondHole, 10);
         sleep_ms(25); // again : extra sleep, for smoother transition.
 
         if (counterFirstHoleToSecondHole >= 20 && counterFirstHoleToSecondHole<= 220) {
@@ -201,24 +201,24 @@ static int8_t moveRondellToKeyPosition(void) {
             return 0;
 
         case Pos1:
-            passBrightPeriod(2500, 10);
+            passBrightPeriod();
             sleep_ms(100);
-            passDarkPeriod(2500, 0, 10);
+            passDarkPeriod(0, 10);
             sleep_ms(50);
-            passBrightPeriod(2500, 10);
+            passBrightPeriod();
             sleep_ms(50);
             return 0;
 
         case Pos2:
-            passBrightPeriod(2500,10);
+            passBrightPeriod();
             return 0;
 
         case Pos3:
-            passBrightPeriod(2500, 10);
+            passBrightPeriod();
             sleep_ms(100);
-            passDarkPeriod(2500, 0, 10);
+            passDarkPeriod(0, 10);
             sleep_ms(50);
-            passBrightPeriod(2500, 10);
+            passBrightPeriod();
             sleep_ms(50);
             return 0;
         default:
