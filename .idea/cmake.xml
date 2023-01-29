@@ -3,7 +3,9 @@
   <component name="CMakeSharedSettings">
     <configurations>
       <configuration PROFILE_NAME="UnitTests" ENABLED="true" CONFIG_NAME="Debug" GENERATION_OPTIONS="-G Ninja -D UNIT_TEST:BOOL=ON" />
-      <configuration PROFILE_NAME="Debug" ENABLED="true" CONFIG_NAME="Debug" GENERATION_OPTIONS="-G Ninja" BUILD_OPTIONS="-j 4" />
+      <configuration PROFILE_NAME="Right" ENABLED="true" CONFIG_NAME="Debug" GENERATION_OPTIONS="-G Ninja -D RIGHT:BOOL=ON" BUILD_OPTIONS="-j 4" />
+      <configuration PROFILE_NAME="Rondell" ENABLED="true" CONFIG_NAME="Debug" GENERATION_OPTIONS="-G Ninja -D RONDELL:BOOL=ON" BUILD_OPTIONS="-j 4" />
+      <configuration PROFILE_NAME="Left" ENABLED="true" CONFIG_NAME="Debug" GENERATION_OPTIONS="-G Ninja -D LEFT:BOOL=ON" BUILD_OPTIONS="-j 4" />
     </configurations>
   </component>
 </project>

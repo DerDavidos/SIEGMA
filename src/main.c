@@ -72,14 +72,15 @@ void processMessage(char *message) {
 //        printf("Dispenser %i will stop %lu ms\n", i, dispenserHaltTimes);
         setDispenserHaltTime(&dispenser[i], dispenserHaltTimes);
     }
-
+    absolute_time_t time = make_timeout_time_ms(DISPENSER_STEP_TIME_MS);
     do {
+        sleep_until(time);
+        time = make_timeout_time_ms(DISPENSER_STEP_TIME_MS);
         // Checks for each dispenser if their next state is reached and perform the according action
         for (uint8_t i = 0; i < NUMBER_OF_DISPENSERS; ++i) {
             dispenserDoStep(&dispenser[i]);
         }
 
-        sleep_ms(DISPENSER_STEP_TIME_MS);
         // When all dispensers are finished, they are in the state sleep
     } while (!allDispenserInSleepState(dispenser, NUMBER_OF_DISPENSERS));
 }
@@ -98,6 +99,16 @@ int main() {
     memset(input_buf, '\0', INPUT_BUFFER_LEN);
     uint16_t characterCounter = 0;
 
+#ifdef LEFT
+    printf("LEFT\n");
+#endif
+#ifdef RONDELL
+    printf("RONDELL\n");
+#endif
+#ifdef RIGHT
+    printf("RIGHT\n");
+#endif
+
     // Waits for an input in the form ([0..9];)+[\n|n], each number standing for the wait time of the corresponding dispenser
     while (true) {
         uint32_t input = getchar_timeout_us(10000000); // 10 seconds wait
@@ -107,27 +118,35 @@ int main() {
 
         // ignore the received character if it is not an allowed one
         if (!isAllowedCharacter(input)) {
+#ifdef DEBUG
             printf("Received '%c' which is not allowed\n", input);
+#endif
             continue;
         }
 
         // received end character, message should be complete, start with processing
         if (input == 'n' || input == '\n') {
+#ifdef DEBUG
             printf("Process Msg len: %d\n", characterCounter);
+#endif
             processMessage(input_buf);
             memset(input_buf, '\0', INPUT_BUFFER_LEN);
             characterCounter = 0;
-            printf("Finished\n");
+            printf("READY\n");
         }
-        // received to many characters -> flushing the uart connection and start over
+            // received to many characters -> flushing the uart connection and start over
         else if (characterCounter >= INPUT_BUFFER_LEN - 1) {
+#ifdef DEBUG
             printf("Input too long, flushing...\n");
+#endif
             memset(input_buf, '\0', INPUT_BUFFER_LEN);
             characterCounter = 0;
         }
-        // character is allowed and we did not reach the end
+            // character is allowed and we did not reach the end
         else {
+#ifdef DEBUG
             printf("Received: %c (counter: %d)\n", input, characterCounter);
+#endif
             input_buf[characterCounter] = input;
             ++characterCounter;
         }

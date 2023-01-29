@@ -33,18 +33,25 @@ void setUpMotor(Motor_t *motor, SerialAddress_t address, SerialUART_t uart) {
     TMC2209_setup(&motor->tmc2209, uart, SERIAL_BAUD_RATE, address);
 
     while (!TMC2209_isSetupAndCommunicating(&motor->tmc2209)) {
+#ifdef DEBUG
         if (TMC2209_disabledByInputPin(&motor->tmc2209)) {
             printf("Setup: Stepper driver with address %i DISABLED by input pin!\n", address);
         }
         printf("Setup: Stepper driver with address %i NOT communicating and setup!\n", address);
+#endif
+
         TMC2209_setup(&motor->tmc2209, uart, SERIAL_BAUD_RATE, address);
         sleep_ms(500);
     }
 
+#ifdef DEBUG
     printf("Setup: Stepper driver with address %i communicating and setup!\n", address);
+#endif
 
     TMC2209_setRunCurrent(&motor->tmc2209, 100);
     TMC2209_enable(&motor->tmc2209);
+
+    motor->direction = DIRECTION_UP;
 }
 
 bool motorIsCommunicating(Motor_t *motor) {
@@ -66,11 +73,11 @@ Motor_t createMotor(SerialAddress_t address, SerialUART_t uart) {
 }
 
 void moveMotorUp(Motor_t *motor) {
-    TMC2209_moveAtVelocity(&motor->tmc2209, -MOTOR_SPEED);
+    TMC2209_moveAtVelocity(&motor->tmc2209, motor->direction * MOTOR_SPEED);
 }
 
 void moveMotorDown(Motor_t *motor) {
-    TMC2209_moveAtVelocity(&motor->tmc2209, MOTOR_SPEED);
+    TMC2209_moveAtVelocity(&motor->tmc2209, motor->direction * -MOTOR_SPEED);
 }
 
 void stopMotor(Motor_t *motor) {
