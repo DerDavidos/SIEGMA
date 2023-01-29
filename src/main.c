@@ -11,6 +11,16 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include "pico/stdio.h"
+#include "pico/time.h"
+#include "pico/bootrom.h"
+#include "pico/stdio_usb.h"
+#include "hardware/watchdog.h"
+#include "hardware/adc.h"
+
+#include "rondell.h"
+#include "Dispenser.h"
+
 // maximum count of allowed input length
 #define INPUT_BUFFER_LEN 255
 // The uart Pins to be used
@@ -71,7 +81,21 @@ void processMessage(char *message) {
         uint32_t dispenserHaltTimes = parseInputString(&message);
 //        printf("Dispenser %i will stop %lu ms\n", i, dispenserHaltTimes);
         setDispenserHaltTime(&dispenser[i], dispenserHaltTimes);
+
+#ifdef RONDELL
+        if (dispenserHaltTimes > 0) {
+            moveToDispenserWithId(i);
+            absolute_time_t time = make_timeout_time_ms(DISPENSER_STEP_TIME_MS);
+            do {
+                sleep_until(time);
+                time = make_timeout_time_ms(DISPENSER_STEP_TIME_MS);
+                dispenserDoStep(dispenser);
+            } while (allDispenserInSleepState(dispenser, 1));
+        }
+#endif
     }
+
+#ifndef RONDELL
     absolute_time_t time = make_timeout_time_ms(DISPENSER_STEP_TIME_MS);
     do {
         sleep_until(time);
@@ -80,20 +104,31 @@ void processMessage(char *message) {
         for (uint8_t i = 0; i < NUMBER_OF_DISPENSERS; ++i) {
             dispenserDoStep(&dispenser[i]);
         }
-
         // When all dispensers are finished, they are in the state sleep
     } while (!allDispenserInSleepState(dispenser, NUMBER_OF_DISPENSERS));
+#endif
+}
+
+void initialize_adc(uint8_t gpio, uint8_t input) {
+    adc_init();
+    adc_gpio_init(gpio);
+    adc_select_input(input);
 }
 
 // MAIN
 int main() {
     initPico(false);
 
-    // create the dispenser with their adress and save them in an array
+#ifdef RONDELL
+    initialize_adc(28, 2);
+    dispenser[0] = createDispenser(0, SERIAL2);
+    setUpRondell(1, SERIAL2);
+#else
+    // create the dispenser with their address and save them in an array
     for (uint8_t i = 0; i < NUMBER_OF_DISPENSERS; ++i) {
         dispenser[i] = createDispenser(i, SERIAL_UART);
     }
-
+#endif
     // Buffer for received Messages
     char *input_buf = malloc(INPUT_BUFFER_LEN);
     memset(input_buf, '\0', INPUT_BUFFER_LEN);

@@ -6,7 +6,11 @@
 #include "motor.h"
 #include "limitSwitch.h"
 
+#ifdef RONDELL
+#define NUMBER_OF_DISPENSERS 1
+#else
 #define NUMBER_OF_DISPENSERS 4
+#endif
 #define DISPENSER_STEP_TIME_MS 100
 #define MS_DISPENSERS_ARE_MOVING_UP 7500
 #define STEPS_DISPENSERS_ARE_MOVING_UP (MS_DISPENSERS_ARE_MOVING_UP / DISPENSER_STEP_TIME_MS)
@@ -17,8 +21,6 @@
 #endif
 
 typedef struct Dispenser Dispenser_t;
-
-
 
 typedef struct dispenserState {
     struct dispenserState (*function)(struct Dispenser *);
@@ -40,9 +42,6 @@ typedef struct Dispenser {
 // @param2 which Uart Pins will be used
 // @return an initialized Dispenser
 Dispenser_t createDispenser(SerialAddress_t address, SerialUART_t uart);
-
-// no usage
-void startDispenser(Dispenser_t *dispenser);
 
 // Dispenser cycles to the next state
 // @param the Dispenser to take action on
