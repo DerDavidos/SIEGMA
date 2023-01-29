@@ -1,3 +1,12 @@
+// Project
+#include "dispenser.h"
+// Pico SDK
+#include <pico/stdio.h>
+#include <pico/time.h>
+#include <pico/bootrom.h>
+#include <pico/stdio_usb.h>
+#include <hardware/watchdog.h>
+// Standard library
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -12,74 +21,92 @@
 #include "rondell.h"
 #include "Dispenser.h"
 
-#define MAX_SLEEP_INPUT 5
+// maximum count of allowed input length
+#define INPUT_BUFFER_LEN 255
+// The uart Pins to be used
+#define SERIAL_UART SERIAL2
 
-
-#define INPUT_BUFFER_LEN 26
-
-Dispenser_t dispenser[1];
-
+// sequence of allowed character
 const char *allowedCharacters = "0123456789;\nn";
+// Array containing the dispenser
+Dispenser_t dispenser[NUMBER_OF_DISPENSERS];
 
+// initialize the usb connection to the pico
+// @param bool if the pico should wait for an usb connection
+// @return void
 void initPico(bool waitForUSBConnection) {
-    if (watchdog_enable_caused_reboot()) {
+    if (watchdog_enable_caused_reboot())
         reset_usb_boot(0, 0);
-    }
 
-    // init usb
-    stdio_init_all();
-    // Time to make sure everything is ready
-    sleep_ms(5000);
+    stdio_init_all(); // init usb
+    sleep_ms(2500); // Time to make sure everything is ready
 
-    // waits for usb connection
-    if (waitForUSBConnection) {
-        while ((!stdio_usb_connected()));
-    }
+    if (waitForUSBConnection)
+        while ((!stdio_usb_connected())); // waits for usb connection
 }
 
-int parseInputString(char *buf, unsigned buf_len, int *p_semiPos) {
-    char *semicolonPosition = strchr(buf, ';');
-    if (semicolonPosition == NULL) {
-        // haben kein Komma gefunden -> :(
-        return 0;
-    }
-    int semi_pos = semicolonPosition - buf;
-    *p_semiPos = semi_pos;
-    if (buf_len < semi_pos || semi_pos > MAX_SLEEP_INPUT || semi_pos <= 0) {
-        return 0;
-    } else {
-        char stepper1_number_buf[MAX_SLEEP_INPUT + 1];
-        memcpy(stepper1_number_buf, buf, semi_pos);
-        stepper1_number_buf[semi_pos] = '\0';
-        stepper1_number_buf[MAX_SLEEP_INPUT] = '\0';
-        return strtol(stepper1_number_buf, NULL, 10);
-    }
-}
-
-void processMessage(char *message, unsigned message_length) {
-    int dispenserHaltTimes[4];
-
-    int semi1Pos, semi2Pos, semi3Pos, semi4Pos;
-
-    dispenserHaltTimes[0] = parseInputString(message, message_length, &semi1Pos);
-    dispenserHaltTimes[1] = parseInputString(message + semi1Pos + 1, message_length - (semi1Pos + 1), &semi2Pos);
-    dispenserHaltTimes[2] = parseInputString(message + semi1Pos + semi2Pos + 2,
-                                             message_length - (semi1Pos + semi2Pos + 2), &semi3Pos);
-    dispenserHaltTimes[3] = parseInputString(message + semi1Pos + semi2Pos + semi3Pos + 3,
-                                             message_length - (semi1Pos + semi2Pos + semi3Pos + 3), &semi4Pos);
-
-    // Check whether dispenser halt time is > 0: if yes move to that dispenser and yield the drink.
-    // When final dispenser halt time is processed, the rondell stops.
-    for (uint8_t i = 0; i < NUMBER_OF_DISPENSERS; i++) {
-        if (dispenserHaltTimes[i] > 0) {
-            setDispenserHaltTime(dispenser, dispenserHaltTimes[i]);
-            moveToDispenserWithId(i);
-            do {
-                dispenserDoStep(dispenser);
-                sleep_ms(DISPENSER_STEP_TIME_MS);
-            } while (allDispenserInSleepState(dispenser, 1));
+// check if the input character is allowed
+// @param the character to check
+// @return true if the input character is in an allowed sequence
+bool isAllowedCharacter(uint32_t input) {
+    for (uint32_t i = 0; i < strlen(allowedCharacters); ++i) {
+        if (input == allowedCharacters[i]) {
+            return true;
         }
     }
+    return false;
+}
+
+// parse a String to fetch the hopper halt timings
+// @param the received message containing the halt timing
+// @return The parsed halt timing as an integer or on failure, a Zero
+uint32_t parseInputString(char **message) {
+    // every halt timing command has to end with a ';'
+    // the function will search for this char and save its position
+    char *semicolonPosition = strchr(*message, ';');
+    if (semicolonPosition == NULL) {
+        return 0; // No Semicolon found
+    }
+    // the string will be cast, from the beginning of the string to the ';'-Position, into an integer
+    uint32_t delay = strtol(*message, &semicolonPosition, 10);
+    *message = semicolonPosition + 1;
+    return delay;
+}
+
+// process the received Message (received over Serial)
+// @param char buffer containing the received Message
+// @return void
+void processMessage(char *message) {
+    for (uint8_t i = 0; i < NUMBER_OF_DISPENSERS; ++i) {
+        uint32_t dispenserHaltTimes = parseInputString(&message);
+//        printf("Dispenser %i will stop %lu ms\n", i, dispenserHaltTimes);
+        setDispenserHaltTime(&dispenser[i], dispenserHaltTimes);
+
+#ifdef RONDELL
+        if (dispenserHaltTimes > 0) {
+            moveToDispenserWithId(i);
+            absolute_time_t time = make_timeout_time_ms(DISPENSER_STEP_TIME_MS);
+            do {
+                sleep_until(time);
+                time = make_timeout_time_ms(DISPENSER_STEP_TIME_MS);
+                dispenserDoStep(dispenser);
+            } while (allDispenserInSleepState(dispenser, 1));
+        }
+#endif
+    }
+
+#ifndef RONDELL
+    absolute_time_t time = make_timeout_time_ms(DISPENSER_STEP_TIME_MS);
+    do {
+        sleep_until(time);
+        time = make_timeout_time_ms(DISPENSER_STEP_TIME_MS);
+        // Checks for each dispenser if their next state is reached and perform the according action
+        for (uint8_t i = 0; i < NUMBER_OF_DISPENSERS; ++i) {
+            dispenserDoStep(&dispenser[i]);
+        }
+        // When all dispensers are finished, they are in the state sleep
+    } while (!allDispenserInSleepState(dispenser, NUMBER_OF_DISPENSERS));
+#endif
 }
 
 void initialize_adc(uint8_t gpio, uint8_t input) {
@@ -88,47 +115,73 @@ void initialize_adc(uint8_t gpio, uint8_t input) {
     adc_select_input(input);
 }
 
+// MAIN
 int main() {
-
     initPico(false);
 
-    initialize_adc(28,2);
-
+#ifdef RONDELL
+    initialize_adc(28, 2);
     dispenser[0] = createDispenser(0, SERIAL2);
-
-    setUpRondell(1,SERIAL2);
-
+    setUpRondell(1, SERIAL2);
+#else
+    // create the dispenser with their address and save them in an array
+    for (uint8_t i = 0; i < NUMBER_OF_DISPENSERS; ++i) {
+        dispenser[i] = createDispenser(i, SERIAL_UART);
+    }
+#endif
+    // Buffer for received Messages
     char *input_buf = malloc(INPUT_BUFFER_LEN);
     memset(input_buf, '\0', INPUT_BUFFER_LEN);
-    unsigned characterCounter = 0;
+    uint16_t characterCounter = 0;
 
+#ifdef LEFT
+    printf("LEFT\n");
+#endif
+#ifdef RONDELL
+    printf("RONDELL\n");
+#endif
+#ifdef RIGHT
+    printf("RIGHT\n");
+#endif
+
+    // Waits for an input in the form ([0..9];)+[\n|n], each number standing for the wait time of the corresponding dispenser
     while (true) {
-        char input = getchar_timeout_us(10000000); // 10 seconds wait
+        uint32_t input = getchar_timeout_us(10000000); // 10 seconds wait
 
-        bool isAllowedCharacter = false;
-        for (int i = 0; i < strlen(allowedCharacters); ++i) {
-            if (input == allowedCharacters[i]) {
-                isAllowedCharacter = true;
-            }
-        }
-        if (isAllowedCharacter == false) {
+        if (input == PICO_ERROR_TIMEOUT)
+            continue;
+
+        // ignore the received character if it is not an allowed one
+        if (!isAllowedCharacter(input)) {
+#ifdef DEBUG
             printf("Received '%c' which is not allowed\n", input);
+#endif
             continue;
         }
 
+        // received end character, message should be complete, start with processing
         if (input == 'n' || input == '\n') {
+#ifdef DEBUG
             printf("Process Msg len: %d\n", characterCounter);
-            processMessage(input_buf, characterCounter);
+#endif
+            processMessage(input_buf);
             memset(input_buf, '\0', INPUT_BUFFER_LEN);
             characterCounter = 0;
-        } else if (characterCounter >= INPUT_BUFFER_LEN - 1) {
-            // Zu viele Bytes empfangen -> Buffer leeren und bereit für die nächste Anfrage sein
-            // Hier kann noch eingefügt werden, dass der Pi eine Rückmeldung bekommt
-            printf("Wrong input\n");
+            printf("READY\n");
+        }
+            // received to many characters -> flushing the uart connection and start over
+        else if (characterCounter >= INPUT_BUFFER_LEN - 1) {
+#ifdef DEBUG
+            printf("Input too long, flushing...\n");
+#endif
             memset(input_buf, '\0', INPUT_BUFFER_LEN);
             characterCounter = 0;
-        } else {
+        }
+            // character is allowed and we did not reach the end
+        else {
+#ifdef DEBUG
             printf("Received: %c (counter: %d)\n", input, characterCounter);
+#endif
             input_buf[characterCounter] = input;
             ++characterCounter;
         }
