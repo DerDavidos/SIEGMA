@@ -1,5 +1,7 @@
 # Code
 
+When first loading with CLion only activate one cMake profile for loading everything for the first time.
+
 ### Required
 
     gcc
