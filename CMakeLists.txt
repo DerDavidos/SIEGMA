@@ -38,6 +38,9 @@ else ()
     pico_sdk_init()
 
     if (TARGET tinyusb_device)
+
+        add_subdirectory(test/integration)
+
         include_directories(src)
         add_subdirectory(src/tmc2209)
         add_subdirectory(src/SerialUART)
