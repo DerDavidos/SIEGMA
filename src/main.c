@@ -1,25 +1,17 @@
 // Project
 #include "dispenser.h"
+#include "rondell.h"
 // Pico SDK
 #include <pico/stdio.h>
 #include <pico/time.h>
 #include <pico/bootrom.h>
 #include <pico/stdio_usb.h>
 #include <hardware/watchdog.h>
+#include <hardware/adc.h>
 // Standard library
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-
-#include "pico/stdio.h"
-#include "pico/time.h"
-#include "pico/bootrom.h"
-#include "pico/stdio_usb.h"
-#include "hardware/watchdog.h"
-#include "hardware/adc.h"
-
-#include "rondell.h"
-#include "Dispenser.h"
 
 // maximum count of allowed input length
 #define INPUT_BUFFER_LEN 255
