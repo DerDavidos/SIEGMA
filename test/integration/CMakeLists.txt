@@ -1,4 +1,4 @@
- add_executable(limitSwitches integrationTest_limitSwitche.c) # creates executable
+ add_executable(limitSwitches integrationTest_limitSwitch.c) # creates executable
  target_include_directories(limitSwitches PUBLIC ${CMAKE_SOURCE_DIR}/src)
  target_link_libraries(limitSwitches
          limitSwitch_lib
@@ -19,3 +19,14 @@
          motor_lib
          limitSwitch_lib)
  make_to_output_file(motor)
+
+ add_executable(dispenser integrationTest_dispenser.c) # creates executable
+ target_include_directories(dispenser PUBLIC ${CMAKE_SOURCE_DIR}/src)
+ target_link_libraries(dispenser
+         dispenser_lib
+         tmc2209_lib
+         pico_stdlib
+         serialUART_lib
+         motor_lib
+         limitSwitch_lib)
+ make_to_output_file(dispenser)
