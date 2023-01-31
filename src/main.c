@@ -30,7 +30,6 @@
 const char *allowedCharacters = "0123456789;\nn";
 // Array containing the dispenser
 Dispenser_t dispenser[NUMBER_OF_DISPENSERS];
-
 // initialize the usb connection to the pico
 // @param bool if the pico should wait for an usb connection
 // @return void
@@ -77,10 +76,10 @@ uint32_t parseInputString(char **message) {
 // @param char buffer containing the received Message
 // @return void
 void processMessage(char *message) {
-    for (uint8_t i = 0; i < NUMBER_OF_DISPENSERS; ++i) {
+    for (uint8_t i = 0; i < 4; ++i) {
         uint32_t dispenserHaltTimes = parseInputString(&message);
 //        printf("Dispenser %i will stop %lu ms\n", i, dispenserHaltTimes);
-        setDispenserHaltTime(&dispenser[i], dispenserHaltTimes);
+        setDispenserHaltTime(&dispenser[0], dispenserHaltTimes);
 
 #ifdef RONDELL
         if (dispenserHaltTimes > 0) {
@@ -89,8 +88,8 @@ void processMessage(char *message) {
             do {
                 sleep_until(time);
                 time = make_timeout_time_ms(DISPENSER_STEP_TIME_MS);
-                dispenserDoStep(dispenser);
-            } while (allDispenserInSleepState(dispenser, 1));
+                dispenserDoStep(&dispenser[0]);
+            } while (!allDispenserInSleepState(dispenser, 1));
         }
 #endif
     }
@@ -129,6 +128,8 @@ int main() {
         dispenser[i] = createDispenser(i, SERIAL_UART);
     }
 #endif
+
+
     // Buffer for received Messages
     char *input_buf = malloc(INPUT_BUFFER_LEN);
     memset(input_buf, '\0', INPUT_BUFFER_LEN);
@@ -146,6 +147,8 @@ int main() {
 
     // Waits for an input in the form ([0..9];)+[\n|n], each number standing for the wait time of the corresponding dispenser
     while (true) {
+
+
         uint32_t input = getchar_timeout_us(10000000); // 10 seconds wait
 
         if (input == PICO_ERROR_TIMEOUT)

@@ -16,6 +16,12 @@ void resetDispenserPosition(Dispenser_t *dispenser) {
     stopMotor(&dispenser->motor);
 }
 
+#ifdef RONDELL
+#define FIND_TIME 750
+#else
+#define FIND_TIME 250
+#endif
+
 void findDirection(Dispenser_t *dispenser, uint32_t time) {
     if (limitSwitchIsClosed(dispenser->limitSwitch)) {
         moveMotorUp(&dispenser->motor);
@@ -26,13 +32,13 @@ void findDirection(Dispenser_t *dispenser, uint32_t time) {
         }
         else {
             moveMotorDown(&dispenser->motor);
-            sleep_ms(time + 250);
+            sleep_ms(time + FIND_TIME);
             if (!limitSwitchIsClosed(dispenser->limitSwitch)) {
                 stopMotor(&dispenser->motor);
                 dispenser->motor.direction = DIRECTION_DOWN;
                 return;
             } else
-                findDirection(dispenser, time + 250);
+                findDirection(dispenser, time + FIND_TIME);
         }
     } else {
         moveMotorDown(&dispenser->motor);
@@ -43,13 +49,13 @@ void findDirection(Dispenser_t *dispenser, uint32_t time) {
             return;
         } else {
             moveMotorUp(&dispenser->motor);
-            sleep_ms(time + 250);
+            sleep_ms(time + FIND_TIME);
             if (limitSwitchIsClosed(dispenser->limitSwitch)) {
                 stopMotor(&dispenser->motor);
                 return;
             }
             else
-                findDirection(dispenser, time + 250);
+                findDirection(dispenser, time + FIND_TIME);
         }
     }
 }
@@ -95,7 +101,6 @@ static DispenserState_t sleepState(Dispenser_t *dispenser) {
 
 static DispenserState_t upState(Dispenser_t *dispenser) {
     if (dispenser->stepsDone > STEPS_DISPENSERS_ARE_MOVING_UP) {
-        sleep_ms(750);
         stopMotor(&dispenser->motor);
         return topState_t;
     }

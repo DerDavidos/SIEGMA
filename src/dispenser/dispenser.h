@@ -12,7 +12,11 @@
 #define NUMBER_OF_DISPENSERS 4
 #endif
 #define DISPENSER_STEP_TIME_MS 100
+#ifdef RONDELL
+#define MS_DISPENSERS_ARE_MOVING_UP 4500
+#else
 #define MS_DISPENSERS_ARE_MOVING_UP 7500
+#endif
 #define STEPS_DISPENSERS_ARE_MOVING_UP (MS_DISPENSERS_ARE_MOVING_UP / DISPENSER_STEP_TIME_MS)
 
 // error check if the number of dispenser exceeds its limits
