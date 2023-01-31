@@ -24,7 +24,7 @@ void initPico(bool waitForUSBConnection) {
 int main() {
     initPico(true);
 
-    printf("First write Stepper ID (0-%i) and then command: Setup (s), Set Time (t), Run (r) [ID not relevant], Halt (while in run) (h)\n",
+    printf("First write Stepper ID (0-%i) and then command: Setup (s), Set Time (t), Run (r), Halt (while in run) (h)\n",
            NUMBER_OF_DISPENSERS - 1);
 
     Dispenser_t dispenser[NUMBER_OF_DISPENSERS];
@@ -49,8 +49,10 @@ int main() {
                 dispenser[id] = createDispenser(id, SERIAL_UART);
                 break;
             case 't':
-                setDispenserHaltTime(&dispenser[id], 1000);
-                printf("Set halt time dispenser: %lu\n", id);
+                printf("Set halt time for dispenser %lu\n: ", id);
+                uint32_t haltTime = getchar_timeout_us(10000000);
+                printf("%lu", haltTime);
+                setDispenserHaltTime(&dispenser[id], haltTime);
                 break;
             case 'r':
                 printf("Running");
@@ -63,12 +65,10 @@ int main() {
                     sleep_until(time);
                     time = make_timeout_time_ms(DISPENSER_STEP_TIME_MS);
                     // Checks for each dispenser if their next state is reached and perform the according action
-                    for (uint8_t i = 0; i < NUMBER_OF_DISPENSERS; ++i) {
-                        dispenserDoStep(&dispenser[i]);
-                    }
+                    dispenserDoStep(&dispenser[id]);
                     // When all dispensers are finished, they are in the state sleep
-                } while (!allDispenserInSleepState(dispenser, NUMBER_OF_DISPENSERS));
-                printf("All Ready\n");
+                } while (dispenser->state.function != sleepState);
+                printf("Ready\n");
                 break;
             default:
                 printf("Wrong Command!\n");
