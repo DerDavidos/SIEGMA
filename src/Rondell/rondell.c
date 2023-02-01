@@ -96,7 +96,6 @@ static void smoothDirectionChange(enum RondellState desiredDirection) {
             stopRondell();
             sleep_ms(1000);
         }
-        printf("ARRIVED\n");
         desiredDirection == RONDELL_MOVING_CLOCKWISE ? moveRondellClockwise() : moveRondellCounterClockwise();
     }
 }
@@ -197,10 +196,9 @@ static void identifyPosition(void) {
     passDarkPeriod(&counterLongHoleToFirstHole, 5);
     sleep_ms(25);
 
-
     // If one of the first two if statements evaluates to true the position can be determined immediately due
     // to the rondell's shape.
-    if (counterLongHoleToFirstHole >= 700 && counterLongHoleToFirstHole <= 900) {
+    if (counterLongHoleToFirstHole >= 800 && counterLongHoleToFirstHole <= 1000) {
         rondell.position = Pos2;
         return;
     }
@@ -243,11 +241,9 @@ static int8_t moveRondellToKeyPosition(void) {
         case Pos2:
             passBrightPeriod();
             sleep_ms(50);
-            printf("POSIITON: %d\n", rondell.position);
             return 0;
 
         case Pos1:
-            printf("POSIITON: %d\n", rondell.position);
             passBrightPeriod();
             sleep_ms(100);
             passDarkPeriod(0, 5);
@@ -257,13 +253,11 @@ static int8_t moveRondellToKeyPosition(void) {
             return 0;
 
         case Pos0:
-            printf("POSIITON: %d\n", rondell.position);
             passBrightPeriod();
             sleep_ms(50);
             return 0;
 
         case Pos3:
-            printf("POSIITON: %d\n", rondell.position);
             passBrightPeriod();
             sleep_ms(100);
             passDarkPeriod(0, 5);
@@ -272,7 +266,6 @@ static int8_t moveRondellToKeyPosition(void) {
             sleep_ms(50);
             return 0;
         default:
-            printf("NONE\n");
             return -1;
     }
 }
