@@ -121,7 +121,7 @@ int main() {
 #ifdef RONDELL
     initialize_adc(28, 2);
     dispenser[0] = createDispenser(0, SERIAL2);
-    setUpRondell(1, SERIAL2);
+    setUpRondell(2, SERIAL2);
 #else
     // create the dispenser with their address and save them in an array
     for (uint8_t i = 0; i < NUMBER_OF_DISPENSERS; ++i) {
