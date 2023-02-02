@@ -10,6 +10,8 @@
 #include <stdint.h>
 #include "motor.h"
 
+typedef uint16_t LDR_VALUE;
+
 enum RondellPos {
     Pos0 = 0,
     Pos1,
@@ -32,6 +34,8 @@ typedef struct Rondell {
     enum RondellState state;
     enum RondellPos position;
     enum RondellPos positionToDriveTo;
+    LDR_VALUE max_ldr_value;
+    LDR_VALUE min_ldr_value;
     Motor_t motor;
     SerialUART_t uart;
 } Rondell_t;
