@@ -2,8 +2,11 @@
 #include "hardware/adc.h"
 #include "TMC2209.h"
 #include "serialUART.h"
+#include <stdio.h>
 
 #include "rondell.h"
+
+#define DEBUGSPECIAL 0
 
 #define MEAN_OF_LDR_VALUES ((rondell.max_ldr_value + rondell.min_ldr_value) / 2)
 
@@ -88,6 +91,9 @@ static void setExtrema(void) {
     sleep_ms(1000);
     moveToDispenserWithId(0);
     rondell.state = RONDELL_SLEEP;
+#ifdef DEBUGSPECIAL
+    printf("LEAVING SETEXTREMA, MAX LDR: %d, MIN LDR: %d\n", rondell.max_ldr_value, rondell.min_ldr_value);
+#endif
 }
 
 static void smoothDirectionChange(enum RondellState desiredDirection) {
@@ -101,6 +107,9 @@ static void smoothDirectionChange(enum RondellState desiredDirection) {
 }
 
 void handleSpecialPosition(void) {
+#ifdef DEBUGSPECIAL
+    printf("ENTERED SPECIAL POSITION\n");
+#endif
     if (rondell.positionToDriveTo == 3 && rondell.position == 0) {
         smoothDirectionChange(RONDELL_MOVING_COUNTER_CLOCKWISE);
     } else {
@@ -113,31 +122,51 @@ void handleSpecialPosition(void) {
 have a difference of 1 but are neither (3,0) nor (0,3).
 */
 void handleOrdinaryPosition(void) {
+#ifdef DEBUGSPECIAL
+    printf("ENTERED ORDINARY POSITION\n");
+#endif
     // The if-condition may seem arbitrary, but it is not; it results from the corresponding dispenser IDs.
     if (rondell.positionToDriveTo > rondell.position) {
+        smoothDirectionChange(RONDELL_MOVING_COUNTER_CLOCKWISE);
+    }
+    else {
         smoothDirectionChange(RONDELL_MOVING_CLOCKWISE);
     }
 }
 
 // Depending on the difference between the rondell's current position and its desired position a decision is being
 // made whether to move clockwise or counter-clockwise.
-static void startRondell(void) {
+static void startRondellAndDecideDirection(void) {
     enableMotorByPin(&rondell.motor);
     if (rondell.position != UNDEFINED) {
         uint8_t positionDifference = calculatePositionDifference();
+#ifdef DEBUGSPECIAL
+        printf("POSITION DIFFERENCE: %u\n", positionDifference);
+#endif
         if (positionDifference == 1) {
-            if(specialPositionGiven()) handleSpecialPosition();
-            else handleOrdinaryPosition();
-            return;
+            if(specialPositionGiven()) {
+                handleSpecialPosition();
+                return;
+            }
+            else {
+                handleOrdinaryPosition();
+#ifdef DEBUGSPECIAL
+                printf("LEFT HANDLEORDINARYPOSITION\n");
+#endif
+                return;
             }
         }
-    moveRondellCounterClockwise();
     }
+    moveRondellCounterClockwise();
+}
 
 static void passBrightPeriod(void);
 static void passDarkPeriod(uint32_t *counter);
 
 static void findLongHole(bool *longHoleFound) {
+#ifdef DEBUGSPECIAL
+    printf("entered FINDLONGHOLE\n");
+#endif
     int high_counter = 0;
     passDarkPeriod(0);
     while(adc_read() < MEAN_OF_LDR_VALUES) {
@@ -159,13 +188,19 @@ static void passLongHole(void) {
 
 static void findLongHoleAndPassIt(void) {
     if (rondell.state != RONDELL_MOVING_COUNTER_CLOCKWISE || rondell.state != RONDELL_MOVING_CLOCKWISE) {
-        startRondell();
+#ifdef DEBUGSPECIAL
+        printf("entered\n");
+#endif
+        startRondellAndDecideDirection();
     }
     bool longHoleFound = false;
 
     while(!longHoleFound) {
         findLongHole(&longHoleFound);
     }
+#ifdef DEBUGSPECIAL
+    printf("LONG HOLE FOUND\n");
+#endif
 
     passLongHole();
 }
@@ -209,6 +244,9 @@ static void identifyPosition(void) {
     passDarkPeriod(&counterLongHoleToFirstHole);
     sleep_ms(25);
 
+#ifdef DEBUGSPECIAL
+    printf("LH TO FH: %d\n", counterLongHoleToFirstHole);
+#endif
     // If one of the first two if statements evaluates to true the position can be determined immediately due
     // to the rondell's shape.
     if (counterLongHoleToFirstHole >= 800 && counterLongHoleToFirstHole <= 1000) {
@@ -230,6 +268,9 @@ static void identifyPosition(void) {
         sleep_ms(50);
 
         passDarkPeriod(&counterFirstHoleToSecondHole);
+#ifdef DEBUGSPECIAL
+        printf("FH TO 2ndH: %d\n", counterFirstHoleToSecondHole);
+#endif
         if (counterFirstHoleToSecondHole >= 100 && counterFirstHoleToSecondHole<= 300) {
             rondell.position = Pos1;
             return;
