@@ -23,6 +23,7 @@ void resetDispenserPosition(Dispenser_t *dispenser) {
 #endif
 
 void findDirection(Dispenser_t *dispenser, uint32_t time) {
+    time = time + FIND_TIME;
     if (limitSwitchIsClosed(dispenser->limitSwitch)) {
         moveMotorUp(&dispenser->motor);
         sleep_ms(time);
@@ -70,7 +71,7 @@ Dispenser_t createDispenser(SerialAddress_t address, SerialUART_t uart) {
     dispenser.motor = createMotor(address, uart);
     dispenser.limitSwitch = createLimitSwitch(address);
 
-    findDirection(&dispenser, 500);
+    findDirection(&dispenser, 250);
 
     // Reset Dispenser positionc
     resetDispenserPosition(&dispenser);
