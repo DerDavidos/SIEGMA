@@ -10,6 +10,8 @@
 
 #include "rondell.h"
 
+#define MEAN_OF_LDR_VALUES ((rondell.max_ldr_value + rondell.min_ldr_value) / 2)
+
 static Rondell_t rondell;
 
 static void createRondell(SerialAddress_t address, SerialUART_t uart) {
@@ -80,13 +82,16 @@ static void setExtrema(void) {
         if (current_val > rondell.max_ldr_value) {
             rondell.max_ldr_value = current_val;
         }
-        else if (current_val < rondell.min_ldr_value) {
+        if (current_val < rondell.min_ldr_value) {
             rondell.min_ldr_value = current_val;
         }
         counter += 10;
         sleep_ms(10);
     }
     stopRondell();
+    rondell.state = RONDELL_IN_KEY_POS;
+    sleep_ms(1000);
+    moveToDispenserWithId(0);
     rondell.state = RONDELL_SLEEP;
 }
 
@@ -100,6 +105,25 @@ static void smoothDirectionChange(enum RondellState desiredDirection) {
     }
 }
 
+void handleSpecialPosition(void) {
+    if (rondell.positionToDriveTo == 3 && rondell.position == 0) {
+        smoothDirectionChange(RONDELL_MOVING_COUNTER_CLOCKWISE);
+    } else {
+        smoothDirectionChange(RONDELL_MOVING_CLOCKWISE);
+    }
+}
+
+/*
+"OrdinaryPosition" means that (position, positionToDriveTo)
+have a difference of 1 but are neither (3,0) nor (0,3).
+*/
+void handleOrdinaryPosition(void) {
+    // The if-condition may seem arbitrary, but it is not; it results from the corresponding dispenser IDs.
+    if (rondell.positionToDriveTo > rondell.position) {
+        smoothDirectionChange(RONDELL_MOVING_CLOCKWISE);
+    }
+}
+
 // Depending on the difference between the rondell's current position and its desired position a decision is being
 // made whether to move clockwise or counter-clockwise.
 static void startRondell(void) {
@@ -107,31 +131,21 @@ static void startRondell(void) {
     if (rondell.position != UNDEFINED) {
         uint8_t positionDifference = calculatePositionDifference();
         if (positionDifference == 1) {
-            if(specialPositionGiven()) {
-                if (rondell.positionToDriveTo == 3 && rondell.position == 0) {
-                    smoothDirectionChange(RONDELL_MOVING_COUNTER_CLOCKWISE);
-                } else {
-                    smoothDirectionChange(RONDELL_MOVING_CLOCKWISE);
-                }
-                return;
-            }
-            // The if-condition may seem arbitrary, but it is not; it results from the corresponding dispenser IDs.
-            if (rondell.positionToDriveTo > rondell.position) {
-                smoothDirectionChange(RONDELL_MOVING_CLOCKWISE);
-                return;
+            if(specialPositionGiven()) handleSpecialPosition();
+            else handleOrdinaryPosition();
+            return;
             }
         }
+    moveRondellCounterClockwise();
     }
-    smoothDirectionChange(RONDELL_MOVING_COUNTER_CLOCKWISE);
-}
 
 static void passBrightPeriod(void);
-static void passDarkPeriod(uint32_t *counter, uint16_t duration);
+static void passDarkPeriod(uint32_t *counter);
 
 static void findLongHole(bool *longHoleFound) {
     int high_counter = 0;
-    passDarkPeriod(0, 5);
-    while(adc_read() < ((rondell.max_ldr_value + rondell.min_ldr_value) / 2)) {
+    passDarkPeriod(0);
+    while(adc_read() < MEAN_OF_LDR_VALUES) {
         if(high_counter >= 500) {
             break;
         }
@@ -166,18 +180,22 @@ static void findLongHoleAndPassIt(void) {
 / value is read, the rondell keeps moving.
  The values may seem confusing; the reader might think that "adc_read() > 2500" in "passDARKPeriod" does not make sense
  but this is necessary because of a hardware restriction that could not be changed anymore.
+
+ The decision to not generalize the sleep-duration is based on the need for consistent behaviour. The sleep period should always
+ be the same; therefore the usage of a constant.
+
  */
-static void passDarkPeriod(uint32_t *counter, uint16_t duration) {
-    while (adc_read() > ((rondell.max_ldr_value + rondell.min_ldr_value) / 2)) {
+static void passDarkPeriod(uint32_t *counter) {
+    while (adc_read() > MEAN_OF_LDR_VALUES) {
         if (counter) {
-            *counter += duration;
+            *counter += 5;
         }
-        sleep_ms(duration);
+        sleep_ms(5);
     }
 }
 
 static void passBrightPeriod(void) {
-    while (adc_read() < ((rondell.max_ldr_value + rondell.min_ldr_value) / 2)) {
+    while (adc_read() < MEAN_OF_LDR_VALUES) {
         sleep_ms(5);
     }
 }
@@ -193,7 +211,7 @@ static void identifyPosition(void) {
     uint32_t counterLongHoleToFirstHole = 50;
     sleep_ms(50);
 
-    passDarkPeriod(&counterLongHoleToFirstHole, 5);
+    passDarkPeriod(&counterLongHoleToFirstHole);
     sleep_ms(25);
 
     // If one of the first two if statements evaluates to true the position can be determined immediately due
@@ -216,7 +234,7 @@ static void identifyPosition(void) {
         uint32_t counterFirstHoleToSecondHole = 50;
         sleep_ms(50);
 
-        passDarkPeriod(&counterFirstHoleToSecondHole, 5);
+        passDarkPeriod(&counterFirstHoleToSecondHole);
         if (counterFirstHoleToSecondHole >= 100 && counterFirstHoleToSecondHole<= 300) {
             rondell.position = Pos1;
             return;
@@ -246,7 +264,7 @@ static int8_t moveRondellToKeyPosition(void) {
         case Pos1:
             passBrightPeriod();
             sleep_ms(100);
-            passDarkPeriod(0, 5);
+            passDarkPeriod(0);
             sleep_ms(50);
             passBrightPeriod();
             sleep_ms(50);
@@ -260,7 +278,7 @@ static int8_t moveRondellToKeyPosition(void) {
         case Pos3:
             passBrightPeriod();
             sleep_ms(100);
-            passDarkPeriod(0, 5);
+            passDarkPeriod(0);
             sleep_ms(50);
             passBrightPeriod();
             sleep_ms(50);
@@ -273,12 +291,6 @@ static int8_t moveRondellToKeyPosition(void) {
 void moveToDispenserWithId(enum RondellPos positionToDriveTo) {
 
     rondell.positionToDriveTo = positionToDriveTo;
-
-    /*if (!(rondell.state == RONDELL_IN_KEY_POS)) {
-        moveRondellToKeyPosition();
-        rondell.state = RONDELL_IN_KEY_POS;
-    }*/
-
 
     if (rondell.positionToDriveTo == rondell.position) {
         return;
