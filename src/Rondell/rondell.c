@@ -1,12 +1,7 @@
-//
-// Created by Baran Demir on 09.01.23.
-//
-
 #include "pico/time.h"
 #include "hardware/adc.h"
 #include "TMC2209.h"
 #include "serialUART.h"
-#include <stdio.h>
 
 #include "rondell.h"
 

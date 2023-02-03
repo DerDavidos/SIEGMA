@@ -1,7 +1,3 @@
-//
-// Created by Baran Demir on 09.01.23.
-//
-
 #ifndef SIEGMA_RONDELL_H
 #define SIEGMA_RONDELL_H
 
