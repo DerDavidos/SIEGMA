@@ -49,8 +49,11 @@ static void stopRondell(void) {
     disableMotorByPin(&rondell.motor);
 }
 
-// Being at position 0/3 and wanting to get to 0/3 is special, because applied to the set {0,1,2,3} some rules of arithmetics are
-// different and therefore need special consideration. Returns a bool.
+/*
+Being at position 0 or 3 and wanting to get to 0 or 3 is special, because applied to the set {0,1,2,3} some rules of arithmetics, specifically
+the absolute value function, are
+different and therefore need special consideration. Returns a bool.
+ */
 static uint8_t specialPositionGiven(void) {
     uint8_t specialPosition;
     (rondell.position == 0 && rondell.positionToDriveTo == 3) || (rondell.position == 3 && rondell.positionToDriveTo == 0) ? (specialPosition = 1) : (specialPosition = 0);
@@ -71,8 +74,10 @@ static uint8_t calculatePositionDifference(void) {
 }
 
 static void setExtrema(void) {
-    enableMotorByPin(&rondell.motor);
-    moveRondellClockwise();
+    if (rondell.state == RONDELL_SLEEP) {
+        enableMotorByPin(&rondell.motor);
+        moveRondellClockwise();
+    }
     uint16_t dataCollectionTime_ms = 15000;
     uint16_t counter = 0;
     while(counter <= dataCollectionTime_ms) {
@@ -127,10 +132,10 @@ void handleOrdinaryPosition(void) {
 #endif
     // The if-condition may seem arbitrary, but it is not; it results from the corresponding dispenser IDs.
     if (rondell.positionToDriveTo > rondell.position) {
-        smoothDirectionChange(RONDELL_MOVING_COUNTER_CLOCKWISE);
+        smoothDirectionChange(RONDELL_MOVING_CLOCKWISE);
     }
     else {
-        smoothDirectionChange(RONDELL_MOVING_CLOCKWISE);
+        smoothDirectionChange(RONDELL_MOVING_COUNTER_CLOCKWISE);
     }
 }
 
@@ -235,6 +240,8 @@ static void passBrightPeriod(void) {
 The idea for the algorithm of "identify position" is to determine time differences between certain areas on the rondell.
 Tests have shown these values to be quite stable. There is a tolerance of ±100 for each critical value, though tests
 have shown that a lesser tolerance probably would have worked too.
+If the time differences could not be matched, the lightning situation in the room may have changed, and therefore "setExtrema()"
+will be called to adapt to the new lightning.
 */
 static void identifyPosition(void) {
     // The next two lines ensure a proper transition from the long hole and counts the time for that period.
@@ -249,7 +256,8 @@ static void identifyPosition(void) {
 #endif
     // If one of the first two if statements evaluates to true the position can be determined immediately due
     // to the rondell's shape.
-    if (counterLongHoleToFirstHole >= 800 && counterLongHoleToFirstHole <= 1000) {
+    // Tests have shown that the time difference for Pos2 needs wider range of tolerance.
+    if (counterLongHoleToFirstHole >= 700 && counterLongHoleToFirstHole <= 1000) {
         rondell.position = Pos2;
         return;
     }
@@ -280,47 +288,62 @@ static void identifyPosition(void) {
             return;
         }
     }
+    setExtrema();
 }
 
 
 /* This function moves the dispenser in alignment with the hopper.
  After each passBrightPeriod/passDarkPeriod there is some extra sleep time to ensure a smooth transition.
-Some values may seem arbitrary; this is because of some slight inaccuracies of the rondell-pattern.
+Some values/instruction may seem arbitrary; this is because of some slight inaccuracies of the rondell-pattern.
 Depending on the position there might be nothing further to do.
+The default case is being called when the position could not be identified. If the position could not be identified
+ "setExtrema()" will be called in "identifyPosition()". If the position could not be identified, obviously "!reachedDesiredPosition",
+ the while-condition in "moveToDispenserWithId" will evaluate to false, and therefore moveRondellToKeyPosition will be called again, but now
+ with a different threshold for "passDarkPeriod"/"passBrightPeriod".
  */
-static int8_t moveRondellToKeyPosition(void) {
+static void moveRondellToKeyPosition(void) {
     findLongHoleAndPassIt();
     identifyPosition();
     switch (rondell.position) {
         case Pos2:
-            passBrightPeriod();
-            sleep_ms(50);
-            return 0;
+            if (rondell.state == RONDELL_MOVING_COUNTER_CLOCKWISE) {
+                sleep_ms(50);
+                passBrightPeriod();
+                sleep_ms(200);
+            }
+            return;
 
         case Pos1:
             passBrightPeriod();
             sleep_ms(100);
             passDarkPeriod(0);
-            sleep_ms(50);
-            passBrightPeriod();
-            sleep_ms(50);
-            return 0;
+            if (rondell.state == RONDELL_MOVING_COUNTER_CLOCKWISE) {
+                sleep_ms(50);
+                passBrightPeriod();
+                sleep_ms(200);
+            }
+            return;
 
         case Pos0:
-            passBrightPeriod();
-            sleep_ms(50);
-            return 0;
+            if (rondell.state == RONDELL_MOVING_COUNTER_CLOCKWISE) {
+                sleep_ms(50);
+                passBrightPeriod();
+                sleep_ms(200);
+            }
+            return;
 
         case Pos3:
             passBrightPeriod();
             sleep_ms(100);
             passDarkPeriod(0);
-            sleep_ms(50);
-            passBrightPeriod();
-            sleep_ms(50);
-            return 0;
+            if (rondell.state == RONDELL_MOVING_COUNTER_CLOCKWISE) {
+                sleep_ms(50);
+                passBrightPeriod();
+                sleep_ms(200);
+            }
+            return;
         default:
-            return -1;
+            return;
     }
 }
 
