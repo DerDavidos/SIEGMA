@@ -240,8 +240,8 @@ static void passBrightPeriod(void) {
 The idea for the algorithm of "identify position" is to determine time differences between certain areas on the rondell.
 Tests have shown these values to be quite stable. There is a tolerance of ±100 for each critical value, though tests
 have shown that a lesser tolerance probably would have worked too.
-If the time differences could not be matched, the lightning situation in the room may have changed, and therefore "setExtrema()"
-will be called to adapt to the new lightning.
+If the time differences could not be matched, the lighting situation in the room may have changed, and therefore "setExtrema()"
+will be called to adapt to the new lighting.
 */
 static void identifyPosition(void) {
     // The next two lines ensure a proper transition from the long hole and counts the time for that period.
