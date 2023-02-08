@@ -2,11 +2,14 @@
 #include "hardware/adc.h"
 #include "TMC2209.h"
 #include "serialUART.h"
-#include <stdio.h>
 
 #include "rondell.h"
 
-#define DEBUGSPECIAL 0
+// #define DEBUGRONDELL 1
+
+#ifdef DEBUGRONDELL
+#include <stdio.h>
+#endif
 
 #define MEAN_OF_LDR_VALUES ((rondell.max_ldr_value + rondell.min_ldr_value) / 2)
 
@@ -74,6 +77,9 @@ static uint8_t calculatePositionDifference(void) {
 }
 
 static void setExtrema(void) {
+#ifdef DEBUGRONDELL
+    printf("ENTERED setExtrema\n");
+#endif
     if (rondell.state == RONDELL_SLEEP) {
         enableMotorByPin(&rondell.motor);
         moveRondellClockwise();
@@ -96,11 +102,12 @@ static void setExtrema(void) {
     sleep_ms(1000);
     moveToDispenserWithId(0);
     rondell.state = RONDELL_SLEEP;
-#ifdef DEBUGSPECIAL
+#ifdef DEBUGRONDELL
     printf("LEAVING SETEXTREMA, MAX LDR: %d, MIN LDR: %d\n", rondell.max_ldr_value, rondell.min_ldr_value);
 #endif
 }
 
+// In case a direction change is needed the rondell shall stop and wait some time before actually changing the direction to ensure smoothness.
 static void smoothDirectionChange(enum RondellState desiredDirection) {
     if (desiredDirection != rondell.state) {
         if (rondell.state != RONDELL_SLEEP) {
@@ -112,7 +119,7 @@ static void smoothDirectionChange(enum RondellState desiredDirection) {
 }
 
 void handleSpecialPosition(void) {
-#ifdef DEBUGSPECIAL
+#ifdef DEBUGRONDELL
     printf("ENTERED SPECIAL POSITION\n");
 #endif
     if (rondell.positionToDriveTo == 3 && rondell.position == 0) {
@@ -127,7 +134,7 @@ void handleSpecialPosition(void) {
 have a difference of 1 but are neither (3,0) nor (0,3).
 */
 void handleOrdinaryPosition(void) {
-#ifdef DEBUGSPECIAL
+#ifdef DEBUGRONDELL
     printf("ENTERED ORDINARY POSITION\n");
 #endif
     // The if-condition may seem arbitrary, but it is not; it results from the corresponding dispenser IDs.
@@ -145,7 +152,7 @@ static void startRondellAndDecideDirection(void) {
     enableMotorByPin(&rondell.motor);
     if (rondell.position != UNDEFINED) {
         uint8_t positionDifference = calculatePositionDifference();
-#ifdef DEBUGSPECIAL
+#ifdef DEBUGRONDELL
         printf("POSITION DIFFERENCE: %u\n", positionDifference);
 #endif
         if (positionDifference == 1) {
@@ -155,7 +162,7 @@ static void startRondellAndDecideDirection(void) {
             }
             else {
                 handleOrdinaryPosition();
-#ifdef DEBUGSPECIAL
+#ifdef DEBUGRONDELL
                 printf("LEFT HANDLEORDINARYPOSITION\n");
 #endif
                 return;
@@ -169,7 +176,7 @@ static void passBrightPeriod(void);
 static void passDarkPeriod(uint32_t *counter);
 
 static void findLongHole(bool *longHoleFound) {
-#ifdef DEBUGSPECIAL
+#ifdef DEBUGRONDELL
     printf("entered FINDLONGHOLE\n");
 #endif
     int high_counter = 0;
@@ -193,7 +200,7 @@ static void passLongHole(void) {
 
 static void findLongHoleAndPassIt(void) {
     if (rondell.state != RONDELL_MOVING_COUNTER_CLOCKWISE || rondell.state != RONDELL_MOVING_CLOCKWISE) {
-#ifdef DEBUGSPECIAL
+#ifdef DEBUGRONDELL
         printf("entered\n");
 #endif
         startRondellAndDecideDirection();
@@ -203,7 +210,7 @@ static void findLongHoleAndPassIt(void) {
     while(!longHoleFound) {
         findLongHole(&longHoleFound);
     }
-#ifdef DEBUGSPECIAL
+#ifdef DEBUGRONDELL
     printf("LONG HOLE FOUND\n");
 #endif
 
@@ -238,10 +245,8 @@ static void passBrightPeriod(void) {
 
 /*
 The idea for the algorithm of "identify position" is to determine time differences between certain areas on the rondell.
-Tests have shown these values to be quite stable. There is a tolerance of ±100 for each critical value, though tests
+Tests have shown these values to be quite stable. There is a tolerance of about ±100 for each critical value, though tests
 have shown that a lesser tolerance probably would have worked too.
-If the time differences could not be matched, the lighting situation in the room may have changed, and therefore "setExtrema()"
-will be called to adapt to the new lighting.
 */
 static void identifyPosition(void) {
     // The next two lines ensure a proper transition from the long hole and counts the time for that period.
@@ -251,17 +256,23 @@ static void identifyPosition(void) {
     passDarkPeriod(&counterLongHoleToFirstHole);
     sleep_ms(25);
 
-#ifdef DEBUGSPECIAL
+#ifdef DEBUGRONDELL
     printf("LH TO FH: %d\n", counterLongHoleToFirstHole);
 #endif
     // If one of the first two if statements evaluates to true the position can be determined immediately due
     // to the rondell's shape.
     // Tests have shown that the time difference for Pos2 needs wider range of tolerance.
     if (counterLongHoleToFirstHole >= 700 && counterLongHoleToFirstHole <= 1000) {
+#ifdef DEBUGRONDELL
+        printf("RONDELL POS2\n");
+#endif
         rondell.position = Pos2;
         return;
     }
     if (counterLongHoleToFirstHole >= 400 && counterLongHoleToFirstHole <= 600) {
+#ifdef DEBUGRONDELL
+        printf("RONDELL POS3\n");
+#endif
         rondell.position = Pos3;
         return;
     }
@@ -276,31 +287,32 @@ static void identifyPosition(void) {
         sleep_ms(50);
 
         passDarkPeriod(&counterFirstHoleToSecondHole);
-#ifdef DEBUGSPECIAL
+#ifdef DEBUGRONDELL
         printf("FH TO 2ndH: %d\n", counterFirstHoleToSecondHole);
 #endif
         if (counterFirstHoleToSecondHole >= 100 && counterFirstHoleToSecondHole<= 300) {
+#ifdef DEBUGRONDELL
+            printf("RONDELL POS1\n");
+#endif
             rondell.position = Pos1;
             return;
         }
         if (counterFirstHoleToSecondHole >= 400 && counterFirstHoleToSecondHole <= 600) {
+#ifdef DEBUGRONDELL
+            printf("RONDELL POS0\n");
+#endif
             rondell.position = Pos0;
             return;
         }
     }
-    setExtrema();
 }
 
 
-/* This function moves the dispenser in alignment with the hopper.
- After each passBrightPeriod/passDarkPeriod there is some extra sleep time to ensure a smooth transition.
+/*
+This function moves the dispenser in alignment with the hopper.
+After each passBrightPeriod/passDarkPeriod there is some extra sleep time to ensure a smooth transition.
 Some values/instruction may seem arbitrary; this is because of some slight inaccuracies of the rondell-pattern.
-Depending on the position there might be nothing further to do.
-The default case is being called when the position could not be identified. If the position could not be identified
- "setExtrema()" will be called in "identifyPosition()". If the position could not be identified, obviously "!reachedDesiredPosition",
- the while-condition in "moveToDispenserWithId" will evaluate to false, and therefore moveRondellToKeyPosition will be called again, but now
- with a different threshold for "passDarkPeriod"/"passBrightPeriod".
- */
+*/
 static void moveRondellToKeyPosition(void) {
     findLongHoleAndPassIt();
     identifyPosition();

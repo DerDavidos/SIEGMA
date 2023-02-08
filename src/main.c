@@ -19,7 +19,7 @@
 #define SERIAL_UART SERIAL2
 
 // sequence of allowed character
-const char *allowedCharacters = "0123456789;\nn";
+const char *allowedCharacters = "0123456789i;\nn";
 // Array containing the dispenser
 Dispenser_t dispenser[NUMBER_OF_DISPENSERS];
 // initialize the usb connection to the pico
@@ -112,6 +112,33 @@ int main() {
 
 #ifdef RONDELL
     initialize_adc(28, 2);
+
+
+    char *input_buf_ident = malloc(4);
+    memset(input_buf_ident, '\0', 4);
+    uint16_t characterCounter_ident = 0;
+
+    volatile bool identified_rondell = false;
+    while (!(identified_rondell)) {
+        uint32_t input = getchar_timeout_us(10000000); // 10 seconds wait
+        if (input == 'i') {
+            input_buf_ident[characterCounter_ident] = input;
+            input = getchar_timeout_us(10000000);
+            if (input == '\n' || input == 'n') {
+                free(input_buf_ident);
+                input_buf_ident = 0;
+                characterCounter_ident = 0;
+                identified_rondell = true;
+                printf("RONDELL\n");
+            }
+        }
+        else {
+            memset(input_buf_ident, '\0', 4);
+            characterCounter_ident = 0;
+            printf("F\n");
+        }
+    }
+
     setUpRondell(2, SERIAL2);
     dispenser[0] = createDispenser(0, SERIAL2);
 #else
@@ -121,7 +148,7 @@ int main() {
     }
 #endif
 
-
+    printf("CALIR\n");
     // Buffer for received Messages
     char *input_buf = malloc(INPUT_BUFFER_LEN);
     memset(input_buf, '\0', INPUT_BUFFER_LEN);
@@ -129,9 +156,6 @@ int main() {
 
 #ifdef LEFT
     printf("LEFT\n");
-#endif
-#ifdef RONDELL
-    printf("RONDELL\n");
 #endif
 #ifdef RIGHT
     printf("RIGHT\n");
@@ -153,6 +177,7 @@ int main() {
 #endif
             continue;
         }
+
 
         // received end character, message should be complete, start with processing
         if (input == 'n' || input == '\n') {
