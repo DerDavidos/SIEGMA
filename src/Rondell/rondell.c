@@ -5,7 +5,7 @@
 
 #include "rondell.h"
 
-// #define DEBUGRONDELL 1
+#define DEBUGRONDELL 1
 
 #ifdef DEBUGRONDELL
 #include <stdio.h>

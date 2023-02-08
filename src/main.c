@@ -100,20 +100,8 @@ void processMessage(char *message) {
 #endif
 }
 
-void initialize_adc(uint8_t gpio, uint8_t input) {
-    adc_init();
-    adc_gpio_init(gpio);
-    adc_select_input(input);
-}
-
-// MAIN
-int main() {
-    initPico(false);
-
 #ifdef RONDELL
-    initialize_adc(28, 2);
-
-
+void establishPiToRondell(void) {
     uint32_t input_identifier;
 
     volatile bool identified_rondell = false;
@@ -132,6 +120,24 @@ int main() {
             printf("F\n");
         }
     }
+}
+
+void initialize_adc(uint8_t gpio, uint8_t input) {
+    adc_init();
+    adc_gpio_init(gpio);
+    adc_select_input(input);
+}
+#endif
+
+
+// MAIN
+int main() {
+    initPico(false);
+
+#ifdef RONDELL
+    initialize_adc(28, 2);
+
+    establishPiToRondell();
 
     setUpRondell(2, SERIAL2);
     dispenser[0] = createDispenser(0, SERIAL2);
