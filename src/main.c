@@ -114,27 +114,21 @@ int main() {
     initialize_adc(28, 2);
 
 
-    char *input_buf_ident = malloc(4);
-    memset(input_buf_ident, '\0', 4);
-    uint16_t characterCounter_ident = 0;
+    uint32_t input_identifier;
 
     volatile bool identified_rondell = false;
     while (!(identified_rondell)) {
         uint32_t input = getchar_timeout_us(10000000); // 10 seconds wait
-        if (input == 'i') {
-            input_buf_ident[characterCounter_ident] = input;
-            input = getchar_timeout_us(10000000);
-            if (input == '\n' || input == 'n') {
-                free(input_buf_ident);
-                input_buf_ident = 0;
-                characterCounter_ident = 0;
+        input_identifier = input;
+        if (input_identifier == 'i') {
+            input_identifier = getchar_timeout_us(10000000);
+            if (input_identifier == '\n' || input_identifier == 'n') {
                 identified_rondell = true;
                 printf("RONDELL\n");
             }
         }
         else {
-            memset(input_buf_ident, '\0', 4);
-            characterCounter_ident = 0;
+            input_identifier = 0;
             printf("F\n");
         }
     }
