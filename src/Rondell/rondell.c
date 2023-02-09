@@ -80,10 +80,8 @@ static void setExtrema(void) {
 #ifdef DEBUGRONDELL
     printf("ENTERED setExtrema\n");
 #endif
-    if (rondell.state == RONDELL_SLEEP) {
-        enableMotorByPin(&rondell.motor);
-        moveRondellClockwise();
-    }
+    enableMotorByPin(&rondell.motor);
+    moveRondellClockwise();
     uint16_t dataCollectionTime_ms = 15000;
     uint16_t counter = 0;
     while(counter <= dataCollectionTime_ms) {
@@ -103,7 +101,7 @@ static void setExtrema(void) {
     moveToDispenserWithId(0);
     rondell.state = RONDELL_SLEEP;
 #ifdef DEBUGRONDELL
-    printf("LEAVING SETEXTREMA, MAX LDR: %d, MIN LDR: %d\n", rondell.max_ldr_value, rondell.min_ldr_value);
+    printf("LEAVING SET EXTREMA, MAX LDR: %d, MIN LDR: %d\n", rondell.max_ldr_value, rondell.min_ldr_value);
 #endif
 }
 
@@ -120,7 +118,7 @@ static void smoothDirectionChange(enum RondellState desiredDirection) {
 
 void handleSpecialPosition(void) {
 #ifdef DEBUGRONDELL
-    printf("ENTERED SPECIAL POSITION\n");
+    printf("ENTERED handleSpecialPosition\n");
 #endif
     if (rondell.positionToDriveTo == 3 && rondell.position == 0) {
         smoothDirectionChange(RONDELL_MOVING_COUNTER_CLOCKWISE);
@@ -135,7 +133,7 @@ have a difference of 1 but are neither (3,0) nor (0,3).
 */
 void handleOrdinaryPosition(void) {
 #ifdef DEBUGRONDELL
-    printf("ENTERED ORDINARY POSITION\n");
+    printf("ENTERED handleOrdinaryPosition\n");
 #endif
     // The if-condition may seem arbitrary, but it is not; it results from the corresponding dispenser IDs.
     if (rondell.positionToDriveTo > rondell.position) {
@@ -149,6 +147,9 @@ void handleOrdinaryPosition(void) {
 // Depending on the difference between the rondell's current position and its desired position a decision is being
 // made whether to move clockwise or counter-clockwise.
 static void startRondellAndDecideDirection(void) {
+#ifdef DEBUGRONDELL
+    printf("started rondell and deciding direction\n");
+#endif
     enableMotorByPin(&rondell.motor);
     if (rondell.position != UNDEFINED) {
         uint8_t positionDifference = calculatePositionDifference();
@@ -162,9 +163,6 @@ static void startRondellAndDecideDirection(void) {
             }
             else {
                 handleOrdinaryPosition();
-#ifdef DEBUGRONDELL
-                printf("LEFT HANDLEORDINARYPOSITION\n");
-#endif
                 return;
             }
         }
@@ -200,9 +198,6 @@ static void passLongHole(void) {
 
 static void findLongHoleAndPassIt(void) {
     if (rondell.state != RONDELL_MOVING_COUNTER_CLOCKWISE || rondell.state != RONDELL_MOVING_CLOCKWISE) {
-#ifdef DEBUGRONDELL
-        printf("entered\n");
-#endif
         startRondellAndDecideDirection();
     }
     bool longHoleFound = false;
@@ -257,7 +252,7 @@ static void identifyPosition(void) {
     sleep_ms(25);
 
 #ifdef DEBUGRONDELL
-    printf("LH TO FH: %d\n", counterLongHoleToFirstHole);
+    printf("LH TO FH: %u\n", counterLongHoleToFirstHole);
 #endif
     // If one of the first two if statements evaluates to true the position can be determined immediately due
     // to the rondell's shape.
@@ -288,7 +283,7 @@ static void identifyPosition(void) {
 
         passDarkPeriod(&counterFirstHoleToSecondHole);
 #ifdef DEBUGRONDELL
-        printf("FH TO 2ndH: %d\n", counterFirstHoleToSecondHole);
+        printf("FH TO 2ndH: %u\n", counterFirstHoleToSecondHole);
 #endif
         if (counterFirstHoleToSecondHole >= 100 && counterFirstHoleToSecondHole<= 300) {
 #ifdef DEBUGRONDELL
@@ -374,4 +369,7 @@ void moveToDispenserWithId(enum RondellPos positionToDriveTo) {
     }
     rondell.state = RONDELL_IN_KEY_POS;
     stopRondell();
+#ifdef DEBUGRONDELL
+    printf("reached desired position: %d, while position variable is: %d\n", positionToDriveTo, rondell.position);
+#endif
 }

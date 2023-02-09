@@ -101,13 +101,17 @@ void processMessage(char *message) {
 }
 
 #ifdef RONDELL
+/*
+This function's purpose is to establish synchronization between the rondell and the pi. The pi sends 'i\n' to the pico
+corresponding to the rondell and to confirm that the string has been received the pico sends back "RONDELL\n".
+This function imprisons the program flow in the while loop until synchronization has been established.
+*/
 void establishPiToRondell(void) {
     uint32_t input_identifier;
-
     volatile bool identified_rondell = false;
+
     while (!(identified_rondell)) {
-        uint32_t input = getchar_timeout_us(10000000); // 10 seconds wait
-        input_identifier = input;
+        input_identifier = getchar_timeout_us(10000000); // 10 seconds wait
         if (input_identifier == 'i') {
             input_identifier = getchar_timeout_us(10000000);
             if (input_identifier == '\n' || input_identifier == 'n') {
@@ -117,7 +121,7 @@ void establishPiToRondell(void) {
         }
         else {
             input_identifier = 0;
-            printf("F\n");
+            printf("F\n");  // Did not receive proper string; await new string.
         }
     }
 }
@@ -148,7 +152,7 @@ int main() {
     }
 #endif
 
-    printf("CALIR\n");
+    printf("CALIBRATION STARTING\n");
     // Buffer for received Messages
     char *input_buf = malloc(INPUT_BUFFER_LEN);
     memset(input_buf, '\0', INPUT_BUFFER_LEN);
