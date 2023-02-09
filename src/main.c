@@ -22,6 +22,7 @@
 const char *allowedCharacters = "0123456789i;\nn";
 // Array containing the dispenser
 Dispenser_t dispenser[NUMBER_OF_DISPENSERS];
+
 // initialize the usb connection to the pico
 // @param bool if the pico should wait for an usb connection
 // @return void
@@ -100,48 +101,57 @@ void processMessage(char *message) {
 #endif
 }
 
-#ifdef RONDELL
+
 /*
-This function's purpose is to establish synchronization between the rondell and the pi. The pi sends 'i\n' to the pico
-corresponding to the rondell and to confirm that the string has been received the pico sends back "RONDELL\n".
+This function's purpose is to establish synchronization between the pico and the pi. The pi sends 'i\n' to the pico
+corresponding and to confirm that the string has been received the pico sends back "[POSITION]\n".
 This function imprisons the program flow in the while loop until synchronization has been established.
 */
-void establishPiToRondell(void) {
+void establishConnectionToMaster(void) {
     uint32_t input_identifier;
-    volatile bool identified_rondell = false;
+    volatile bool identified = false;
 
-    while (!(identified_rondell)) {
+    while (!(identified)) {
         input_identifier = getchar_timeout_us(10000000); // 10 seconds wait
         if (input_identifier == 'i') {
             input_identifier = getchar_timeout_us(10000000);
             if (input_identifier == '\n' || input_identifier == 'n') {
-                identified_rondell = true;
+#ifdef RONDELL
                 printf("RONDELL\n");
+#endif
+#ifdef LEFT
+                printf("LEFT\n");
+#endif
+#ifdef RIGHT
+                printf("RIGHT\n");
+#endif
+                identified = true;
             }
-        }
-        else {
+        } else {
             input_identifier = 0;
             printf("F\n");  // Did not receive proper string; await new string.
         }
     }
 }
 
+#ifdef RONDELL
+
 void initialize_adc(uint8_t gpio, uint8_t input) {
     adc_init();
     adc_gpio_init(gpio);
     adc_select_input(input);
 }
-#endif
 
+#endif
 
 // MAIN
 int main() {
     initPico(false);
 
+    establishConnectionToMaster();
+
 #ifdef RONDELL
     initialize_adc(28, 2);
-
-    establishPiToRondell();
 
     setUpRondell(2, SERIAL2);
     dispenser[0] = createDispenser(0, SERIAL2);
@@ -157,13 +167,6 @@ int main() {
     char *input_buf = malloc(INPUT_BUFFER_LEN);
     memset(input_buf, '\0', INPUT_BUFFER_LEN);
     uint16_t characterCounter = 0;
-
-#ifdef LEFT
-    printf("LEFT\n");
-#endif
-#ifdef RIGHT
-    printf("RIGHT\n");
-#endif
 
     // Waits for an input in the form ([0..9];)+[\n|n], each number standing for the wait time of the corresponding dispenser
     while (true) {
