@@ -7,10 +7,10 @@
 #include <stdbool.h>
 
 // Pins of the connected Limit switches
-#define STEPPER0_LS_PIN 26
-#define STEPPER1_LS_PIN 27
-#define STEPPER2_LS_PIN 28
-#define STEPPER3_LS_PIN 29
+#define STEPPER0_LS_PIN 29
+#define STEPPER1_LS_PIN 28
+#define STEPPER2_LS_PIN 27
+#define STEPPER3_LS_PIN 26
 
 // assign the limit switches to their stepper motors
 #define LIMIT_SWITCH_0 (limitSwitch_t) {.pin = STEPPER0_LS_PIN}

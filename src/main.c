@@ -1,6 +1,8 @@
 // Project
 #include "dispenser.h"
+#ifdef RONDELL
 #include "rondell.h"
+#endif
 // Pico SDK
 #include <pico/stdio.h>
 #include <pico/time.h>
@@ -71,10 +73,8 @@ uint32_t parseInputString(char **message) {
 void processMessage(char *message) {
     for (uint8_t i = 0; i < 4; ++i) {
         uint32_t dispenserHaltTimes = parseInputString(&message);
-//        printf("Dispenser %i will stop %lu ms\n", i, dispenserHaltTimes);
-        setDispenserHaltTime(&dispenser[0], dispenserHaltTimes);
-
 #ifdef RONDELL
+        setDispenserHaltTime(&dispenser[0], dispenserHaltTimes);
         if (dispenserHaltTimes > 0) {
             moveToDispenserWithId(i);
             absolute_time_t time = make_timeout_time_ms(DISPENSER_STEP_TIME_MS);
@@ -84,6 +84,8 @@ void processMessage(char *message) {
                 dispenserDoStep(&dispenser[0]);
             } while (!allDispenserInSleepState(dispenser, 1));
         }
+#else
+        setDispenserHaltTime(&dispenser[i], dispenserHaltTimes);
 #endif
     }
 
@@ -100,7 +102,6 @@ void processMessage(char *message) {
     } while (!allDispenserInSleepState(dispenser, NUMBER_OF_DISPENSERS));
 #endif
 }
-
 
 /*
 This function's purpose is to establish synchronization between the pico and the pi. The pi sends 'i\n' to the pico
@@ -135,13 +136,11 @@ void establishConnectionToMaster(void) {
 }
 
 #ifdef RONDELL
-
 void initialize_adc(uint8_t gpio, uint8_t input) {
     adc_init();
     adc_gpio_init(gpio);
     adc_select_input(input);
 }
-
 #endif
 
 // MAIN
@@ -162,7 +161,7 @@ int main() {
     }
 #endif
 
-    printf("CALIBRATION STARTING\n");
+    printf("CALIBRATED\n");
     // Buffer for received Messages
     char *input_buf = malloc(INPUT_BUFFER_LEN);
     memset(input_buf, '\0', INPUT_BUFFER_LEN);
