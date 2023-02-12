@@ -291,4 +291,6 @@ void TMC2209_moveAtVelocity(TMC2209_t *tmc2209, int32_t microsteps_per_period);
 
 void TMC2209_disable(TMC2209_t *tmc2209);
 
+void TMC2209_setHoldCurrent(TMC2209_t *tmc2209, uint8_t percent);
+
 #endif

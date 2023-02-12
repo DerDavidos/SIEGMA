@@ -49,6 +49,7 @@ void setUpMotor(Motor_t *motor, SerialAddress_t address, SerialUART_t uart) {
 #endif
 
     TMC2209_setRunCurrent(&motor->tmc2209, 100);
+    TMC2209_setHoldCurrent(&motor->tmc2209, 50);
     TMC2209_enable(&motor->tmc2209);
 
     motor->direction = DIRECTION_UP;

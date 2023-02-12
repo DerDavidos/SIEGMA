@@ -75,6 +75,13 @@ void TMC2209_setup(TMC2209_t *tmc2209, SerialUART_t serial, uint32_t serial_baud
         tmc2209->blocking = true;
 }
 
+void TMC2209_setHoldCurrent(TMC2209_t *tmc2209, uint8_t percent) {
+    uint8_t hold_current = TMC2209_percentToCurrentSetting(percent);
+
+    tmc2209->driver_current.ihold = hold_current;
+    TMC2209_writeStoredDriverCurrent(tmc2209);
+}
+
 bool TMC2209_isCommunicating(TMC2209_t *tmc2209) {
     return (TMC2209_getVersion(tmc2209) == VERSION);
 }
