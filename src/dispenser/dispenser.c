@@ -46,7 +46,7 @@ void findDirection(Dispenser_t *dispenser, uint32_t time) {
         sleep_ms(time);
         if (limitSwitchIsClosed(dispenser->limitSwitch)) {
             stopMotor(&dispenser->motor);
-            dispenser->motor.direction = DIRECTION_DOWN;
+            dispenser->motor.direction = DIRECTION_UP;
             return;
         } else {
             moveMotorUp(&dispenser->motor);
