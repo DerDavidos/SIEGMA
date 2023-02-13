@@ -24,12 +24,12 @@ typedef struct limitSwitch {
 } limitSwitch_t;
 
 // retrieve if the limit switch is pressed or not
-// @param limit switch to check
+// @param1 limit switch to check
 // @return true is the switch is closed and false if its open
 bool limitSwitchIsClosed(limitSwitch_t limitSwitch);
 
 // create a new limit switch
-// @param the id of the new switch, if it is not accepted the pin is set to -1 and not initialized
+// @param1 the id of the new switch, if it is not accepted the pin is set to -1 and not initialized
 // @return a new limit switch with initialized pins
 limitSwitch_t createLimitSwitch(uint8_t id);
 

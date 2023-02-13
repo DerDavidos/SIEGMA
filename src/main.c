@@ -26,7 +26,7 @@ const char *allowedCharacters = "0123456789i;\nn";
 Dispenser_t dispenser[NUMBER_OF_DISPENSERS];
 
 // initialize the usb connection to the pico
-// @param bool if the pico should wait for an usb connection
+// @param1 bool if the pico should wait for an usb connection
 // @return void
 void initPico(bool waitForUSBConnection) {
     if (watchdog_enable_caused_reboot())
@@ -40,7 +40,7 @@ void initPico(bool waitForUSBConnection) {
 }
 
 // check if the input character is allowed
-// @param the character to check
+// @param1 the character to check
 // @return true if the input character is in an allowed sequence
 bool isAllowedCharacter(uint32_t input) {
     for (uint32_t i = 0; i < strlen(allowedCharacters); ++i) {
@@ -52,7 +52,7 @@ bool isAllowedCharacter(uint32_t input) {
 }
 
 // parse a String to fetch the hopper halt timings
-// @param the received message containing the halt timing
+// @param1 the received message containing the halt timing
 // @return The parsed halt timing as an integer or on failure, a Zero
 uint32_t parseInputString(char **message) {
     // every halt timing command has to end with a ';'
@@ -68,7 +68,7 @@ uint32_t parseInputString(char **message) {
 }
 
 // process the received Message (received over Serial)
-// @param char buffer containing the received Message
+// @param1 char buffer containing the received Message
 // @return void
 void processMessage(char *message) {
     for (uint8_t i = 0; i < 4; ++i) {
