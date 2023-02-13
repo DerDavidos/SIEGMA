@@ -58,16 +58,35 @@ void dispenserDoStep(Dispenser_t *dispenser);
 // @return true if all Dispenser are in a sleeping state
 bool allDispenserInSleepState(Dispenser_t *dispenser, uint8_t number_of_dispenser);
 
+// Set the halt time for the dispenser to wait at the "top"
+// @param1 Dispenser to be set
+// @param2 The time (in ms) to halt
+// @return void
 void setDispenserHaltTime(Dispenser_t *dispenser, uint32_t haltTime);
 
+// Change dispenser state to the sleep state (wait for new command)
+// @param1 Dispenser to be set
+// @return new state (sleep state) of the dispenser
 static DispenserState_t sleepState(Dispenser_t *dispenser);
 
+// Change dispenser state to the up state (drive upwards)
+// @param1 Dispenser to be set
+// @return new state (up state) of the dispenser
 static DispenserState_t upState(Dispenser_t *dispenser);
 
+// Change dispenser state to the top state (stay in the up position)
+// @param1 Dispenser to be set
+// @return new state (top state) of the dispenser
 static DispenserState_t topState(Dispenser_t *dispenser);
 
+// Change dispenser state to the down state (drive downwards)
+// @param1 Dispenser to be set
+// @return new state (down state) of the dispenser
 static DispenserState_t downState(Dispenser_t *dispenser);
 
+// Change dispenser state to the error state (no connection to the tmc -> try again)
+// @param1 Dispenser to be set
+// @return new state (error state) of the dispenser
 static DispenserState_t errorState(Dispenser_t *dispenser);
 
 #endif //SIEGMA_DISPENSER_H
