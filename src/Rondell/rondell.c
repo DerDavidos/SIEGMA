@@ -94,7 +94,7 @@ static void setExtrema(void) {
         sleep_ms(10);
     }
     stopRondell();
-    rondell.state = RONDELL_IN_KEY_POS;
+    rondell.state = RONDELL_SLEEP;
     sleep_ms(1000);
     moveToDispenserWithId(0);
     rondell.state = RONDELL_SLEEP;
@@ -103,25 +103,14 @@ static void setExtrema(void) {
 #endif
 }
 
-// In case a direction change is needed the rondell shall stop and wait some time before actually changing the direction to ensure smoothness.
-static void smoothDirectionChange(enum RondellState desiredDirection) {
-    if (desiredDirection != rondell.state) {
-        if (rondell.state != RONDELL_SLEEP) {
-            stopRondell();
-            sleep_ms(1000);
-        }
-        desiredDirection == RONDELL_MOVING_CLOCKWISE ? moveRondellClockwise() : moveRondellCounterClockwise();
-    }
-}
-
 void handleSpecialPosition(void) {
 #ifdef DEBUG
     printf("ENTERED handleSpecialPosition\n");
 #endif
     if (rondell.positionToDriveTo == 3 && rondell.position == 0) {
-        smoothDirectionChange(RONDELL_MOVING_COUNTER_CLOCKWISE);
+        moveRondellCounterClockwise();
     } else {
-        smoothDirectionChange(RONDELL_MOVING_CLOCKWISE);
+        moveRondellClockwise();
     }
 }
 
@@ -132,12 +121,19 @@ have a difference of 1 but are neither (3,0) nor (0,3).
 void handleOrdinaryPosition(void) {
 #ifdef DEBUG
     printf("ENTERED handleOrdinaryPosition\n");
+    printf("rondell.position = %d, rondell.positionToDriveTo: %d\n", rondell.position, rondell.positionToDriveTo);
 #endif
     // The if-condition may seem arbitrary, but it is not; it results from the corresponding dispenser IDs.
     if (rondell.positionToDriveTo > rondell.position) {
-        smoothDirectionChange(RONDELL_MOVING_CLOCKWISE);
+#ifdef DEBUG
+        printf("positionToDriveTo > rondell.position\n");
+#endif
+        moveRondellClockwise();
     } else {
-        smoothDirectionChange(RONDELL_MOVING_COUNTER_CLOCKWISE);
+#ifdef DEBUG
+        printf("positionToDriveTo <= rondell.position\n");
+#endif
+        moveRondellCounterClockwise();
     }
 }
 
@@ -163,7 +159,7 @@ static void startRondellAndDecideDirection(void) {
             }
         }
     }
-    moveRondellCounterClockwise();
+    moveRondellClockwise();
 }
 
 static void passBrightPeriod(void);
@@ -194,7 +190,7 @@ static void passLongHole(void) {
 }
 
 static void findLongHoleAndPassIt(void) {
-    if (rondell.state != RONDELL_MOVING_COUNTER_CLOCKWISE || rondell.state != RONDELL_MOVING_CLOCKWISE) {
+    if (rondell.state != RONDELL_MOVING_COUNTER_CLOCKWISE && rondell.state != RONDELL_MOVING_CLOCKWISE) {
         startRondellAndDecideDirection();
     }
     bool longHoleFound = false;
@@ -310,41 +306,30 @@ static void moveRondellToKeyPosition(void) {
     identifyPosition();
     switch (rondell.position) {
         case Pos2:
-            if (rondell.state == RONDELL_MOVING_COUNTER_CLOCKWISE) {
-                sleep_ms(50);
-                passBrightPeriod();
-                sleep_ms(200);
-            }
+            passBrightPeriod();
             return;
 
         case Pos1:
             passBrightPeriod();
             sleep_ms(100);
             passDarkPeriod(0);
-            if (rondell.state == RONDELL_MOVING_COUNTER_CLOCKWISE) {
-                sleep_ms(50);
-                passBrightPeriod();
-                sleep_ms(200);
-            }
+
+            sleep_ms(50);
+            passBrightPeriod();
+            sleep_ms(200);
             return;
 
         case Pos0:
-            if (rondell.state == RONDELL_MOVING_COUNTER_CLOCKWISE) {
-                sleep_ms(50);
-                passBrightPeriod();
-                sleep_ms(200);
-            }
+            sleep_ms(50);
+            passBrightPeriod();
+            sleep_ms(100);
             return;
 
         case Pos3:
             passBrightPeriod();
             sleep_ms(100);
             passDarkPeriod(0);
-            if (rondell.state == RONDELL_MOVING_COUNTER_CLOCKWISE) {
-                sleep_ms(50);
-                passBrightPeriod();
-                sleep_ms(200);
-            }
+            passBrightPeriod();
             return;
         default:
             return;
