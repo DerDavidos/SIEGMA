@@ -13,11 +13,18 @@
 #endif
 #define DISPENSER_STEP_TIME_MS 100
 #ifdef RONDELL
-#define MS_DISPENSERS_ARE_MOVING_UP 7500
-#else
-#define MS_DISPENSERS_ARE_MOVING_UP 8000
+#define MS_DISPENSERS_ARE_MOVING_UP_0 7500
+#elifdef LEFT
+#define MS_DISPENSERS_ARE_MOVING_UP_0 8300
+#define MS_DISPENSERS_ARE_MOVING_UP_1 8500
+#define MS_DISPENSERS_ARE_MOVING_UP_2 7500
+#define MS_DISPENSERS_ARE_MOVING_UP_3 7300
+#elifdef RIGHT
+#define MS_DISPENSERS_ARE_MOVING_UP_0 7700
+#define MS_DISPENSERS_ARE_MOVING_UP_1 7500
+#define MS_DISPENSERS_ARE_MOVING_UP_2 8200
+#define MS_DISPENSERS_ARE_MOVING_UP_3 7900
 #endif
-#define STEPS_DISPENSERS_ARE_MOVING_UP (MS_DISPENSERS_ARE_MOVING_UP / DISPENSER_STEP_TIME_MS)
 
 // error check if the number of dispenser exceeds its limits
 #if NUMBER_OF_DISPENSERS > 4
@@ -33,7 +40,9 @@ typedef struct dispenserState {
 // Dispenser struct holding all important values to control the stepper driver
 typedef struct Dispenser {
     SerialAddress_t address;
+    uint8_t othersTriggered;
     uint16_t stepsDone;
+    uint16_t stepsUp;
     uint16_t haltSteps;
     DispenserState_t state;
     Motor_t motor;

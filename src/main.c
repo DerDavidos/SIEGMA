@@ -1,5 +1,6 @@
 // Project
 #include "dispenser.h"
+
 #ifdef RONDELL
 #include "rondell.h"
 #endif
@@ -71,6 +72,8 @@ uint32_t parseInputString(char **message) {
 // @param1 char buffer containing the received Message
 // @return void
 void processMessage(char *message) {
+    uint16_t dispensersTrigger = 0;
+
     for (uint8_t i = 0; i < 4; ++i) {
         uint32_t dispenserHaltTimes = parseInputString(&message);
 #ifdef RONDELL
@@ -85,9 +88,18 @@ void processMessage(char *message) {
             } while (!allDispenserInSleepState(dispenser, 1));
         }
 #else
+        if (dispenserHaltTimes > 0) {
+            dispensersTrigger++;
+        }
         setDispenserHaltTime(&dispenser[i], dispenserHaltTimes);
 #endif
     }
+
+#ifndef RONDELL
+    for (int i = 0; i < NUMBER_OF_DISPENSERS; ++i) {
+        dispenser[i].othersTriggered = dispensersTrigger;
+    }
+#endif
 
 #ifndef RONDELL
     absolute_time_t time = make_timeout_time_ms(DISPENSER_STEP_TIME_MS);
@@ -151,9 +163,8 @@ int main() {
 
 #ifdef RONDELL
     initialize_adc(28, 2);
-
-    setUpRondell(2, SERIAL2);
     dispenser[0] = createDispenser(0, SERIAL2);
+    setUpRondell(2, SERIAL2);
 #else
     // create the dispenser with their address and save them in an array
     for (uint8_t i = 0; i < NUMBER_OF_DISPENSERS; ++i) {

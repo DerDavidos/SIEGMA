@@ -75,12 +75,15 @@ Motor_t createMotor(SerialAddress_t address, SerialUART_t uart) {
 
 void moveMotorUp(Motor_t *motor) {
     TMC2209_moveAtVelocity(&motor->tmc2209, motor->direction * MOTOR_SPEED);
+    TMC2209_moveAtVelocity(&motor->tmc2209, motor->direction * MOTOR_SPEED);
 }
 
 void moveMotorDown(Motor_t *motor) {
     TMC2209_moveAtVelocity(&motor->tmc2209, motor->direction * -MOTOR_SPEED);
+    TMC2209_moveAtVelocity(&motor->tmc2209, motor->direction * -MOTOR_SPEED);
 }
 
 void stopMotor(Motor_t *motor) {
+    TMC2209_moveAtVelocity(&motor->tmc2209, 0);
     TMC2209_moveAtVelocity(&motor->tmc2209, 0);
 }

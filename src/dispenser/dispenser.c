@@ -1,5 +1,6 @@
 #include "dispenser.h"
 #include "pico/time.h"
+
 #include <stdio.h>
 
 static DispenserState_t sleepState_t = (DispenserState_t) {.function=&sleepState};
@@ -30,8 +31,7 @@ void findDirection(Dispenser_t *dispenser, uint32_t time) {
         if (!limitSwitchIsClosed(dispenser->limitSwitch)) {
             stopMotor(&dispenser->motor);
             return;
-        }
-        else {
+        } else {
             moveMotorDown(&dispenser->motor);
             sleep_ms(time + FIND_TIME);
             if (!limitSwitchIsClosed(dispenser->limitSwitch)) {
@@ -54,8 +54,7 @@ void findDirection(Dispenser_t *dispenser, uint32_t time) {
             if (limitSwitchIsClosed(dispenser->limitSwitch)) {
                 stopMotor(&dispenser->motor);
                 return;
-            }
-            else
+            } else
                 findDirection(dispenser, time + FIND_TIME);
         }
     }
@@ -70,10 +69,28 @@ Dispenser_t createDispenser(SerialAddress_t address, SerialUART_t uart) {
     dispenser.state = (DispenserState_t) {.function=&sleepState};
     dispenser.motor = createMotor(address, uart);
     dispenser.limitSwitch = createLimitSwitch(address);
+    dispenser.othersTriggered = 0;
+
+    switch (address) {
+        case 0:
+            dispenser.stepsUp = MS_DISPENSERS_ARE_MOVING_UP_0 / DISPENSER_STEP_TIME_MS;
+            break;
+#ifndef RONDELL
+        case 1:
+            dispenser.stepsUp = MS_DISPENSERS_ARE_MOVING_UP_1 / DISPENSER_STEP_TIME_MS;
+            break;
+        case 2:
+            dispenser.stepsUp = MS_DISPENSERS_ARE_MOVING_UP_2 / DISPENSER_STEP_TIME_MS;
+            break;
+        case 3:
+            dispenser.stepsUp = MS_DISPENSERS_ARE_MOVING_UP_3 / DISPENSER_STEP_TIME_MS;
+            break;
+#endif
+    }
 
     findDirection(&dispenser, 250);
 
-    // Reset Dispenser positionc
+    // Reset Dispenser position
     resetDispenserPosition(&dispenser);
 
     disableMotorByPin(&dispenser.motor);
@@ -84,7 +101,7 @@ Dispenser_t createDispenser(SerialAddress_t address, SerialUART_t uart) {
 static DispenserState_t errorState(Dispenser_t *dispenser) {
     setUpMotor(&dispenser->motor, dispenser->address, dispenser->uart);
     if (motorIsCommunicating(&dispenser->motor)) {
-        resetDispenserPosition(dispenser);
+        disableMotorByPin(&dispenser->motor);
         dispenser->haltSteps = 0;
         return sleepState_t;
     }
@@ -101,7 +118,10 @@ static DispenserState_t sleepState(Dispenser_t *dispenser) {
 }
 
 static DispenserState_t upState(Dispenser_t *dispenser) {
-    if (dispenser->stepsDone > STEPS_DISPENSERS_ARE_MOVING_UP) {
+    printf("upState\n");
+    printf("%i\n" ,dispenser->stepsDone);
+    printf("%i\n" ,dispenser->stepsUp + 2 * dispenser->othersTriggered);
+    if (dispenser->stepsDone > dispenser->stepsUp + 2 * dispenser->othersTriggered) {
         stopMotor(&dispenser->motor);
         return topState_t;
     }
@@ -111,7 +131,8 @@ static DispenserState_t upState(Dispenser_t *dispenser) {
 }
 
 static DispenserState_t topState(Dispenser_t *dispenser) {
-    if (dispenser->stepsDone > STEPS_DISPENSERS_ARE_MOVING_UP + dispenser->haltSteps) {
+    printf("topState\n");
+    if (dispenser->stepsDone > dispenser->stepsUp + 2 * dispenser->othersTriggered + dispenser->haltSteps) {
         moveMotorDown(&dispenser->motor);
         return downState_t;
     }
@@ -120,12 +141,20 @@ static DispenserState_t topState(Dispenser_t *dispenser) {
 }
 
 static DispenserState_t downState(Dispenser_t *dispenser) {
+    printf("downState\n");
     if (limitSwitchIsClosed(dispenser->limitSwitch)) {
         stopMotor(&dispenser->motor);
         disableMotorByPin(&dispenser->motor);
         dispenser->haltSteps = 0;
         return sleepState_t;
     }
+    if (dispenser->stepsDone > 2 * dispenser->stepsUp + 2 * dispenser->othersTriggered + dispenser->haltSteps + 10) {
+        stopMotor(&dispenser->motor);
+        disableMotorByPin(&dispenser->motor);
+        dispenser->haltSteps = 0;
+        return sleepState_t;
+    }
+    dispenser->stepsDone++;
     return downState_t;
 }
 
