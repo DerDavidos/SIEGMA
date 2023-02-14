@@ -172,7 +172,7 @@ static void passBrightPeriod(void);
 static void passDarkPeriod(uint32_t *counter);
 
 /*
-The idea of "findLongHole" is to increment a counter until a certain value during a period in which there is light is reached; if the counter reaches the value
+The idea of "findLongHole" is to increment a counter until a certain value, during a period in which there is light, is reached; if the counter reaches the value
 it means that there was light for so long that the passed area qualifies as a long hole. "adc_read() < MEAN_OF_LDR_VALUES" might be unintuitive;
 since we're checking for light "adc_read() > MEAN_OF_LDR_VALUES" may be expected, however this is due to a restriction of the PCB.
 */
