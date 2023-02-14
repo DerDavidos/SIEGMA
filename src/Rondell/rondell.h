@@ -46,7 +46,7 @@ typedef struct Rondell {
 // @return void
 void setUpRondell(SerialAddress_t address, SerialUART_t uart);
 
-// Sets up the rondell by initializing corresponding struct and setting extreme values of ldr.
+// This is the core-function of the rondell; it moves the rondell to the desired dispenser.
 // @oaram1 enum RondellPos: Position that should be driven to.
 // @return void
 void moveToDispenserWithId(enum RondellPos positionToDriveTo);
