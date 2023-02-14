@@ -21,6 +21,11 @@ static void createRondell(SerialAddress_t address, SerialUART_t uart) {
     rondell.motor = createMotor(address, uart);
 }
 
+/*
+"setExtrema" is called at startup and its purpose is to set the maximum and minimum ldr value in order to correctly calculate the
+threshold for "passDarkPeriod/passBrightPeriod". The threshold formula is visible in the macro definition of "MEAN_OF_LDR_VALUES".
+This function allows to adapt to various lighting situation since the threshold is not a fixed number.
+*/
 static void setExtrema(void);
 
 static void moveRondellClockwise(void);
@@ -206,10 +211,12 @@ static void findLongHoleAndPassIt(void) {
 }
 
 
-/* The following two functions check whether the ADC reads above/below a certain value. So long as that
-/ value is read, the rondell keeps moving.
- The values may seem confusing; the reader might think that "adc_read() > 2500" in "passDARKPeriod" does not make sense
- but this is necessary because of a hardware restriction that could not be changed anymore.
+/* 
+ The following two functions check whether the ADC reads above/below a certain value. So long as that
+ value is read, the rondell keeps moving.
+ The usage of ">" and "<" may seem confusing; the reader might think that "adc_read() > threshold" in "passDARKPeriod" does not make sense,
+ because intuitively you would rather except "adc_read < threshold", but this is necessary because of a 
+ hardware restriction on the PCB that could not be changed anymore.
 
  The decision to not generalize the sleep-duration is based on the need for consistent behaviour. The sleep period should always
  be the same; therefore the usage of a constant.
@@ -298,8 +305,8 @@ static void identifyPosition(void) {
 
 /*
 This function moves the dispenser in alignment with the hopper.
-After each passBrightPeriod/passDarkPeriod there is some extra sleep time to ensure a smooth transition.
-Some values/instruction may seem arbitrary; this is because of some slight inaccuracies of the rondell-pattern.
+After passBrightPeriod/passDarkPeriod there might be some extra sleep time to ensure a smooth transition.
+Some values/instruction may seem arbitrary/inconsistent; this is because of some slight inaccuracies of the rondell-pattern.
 */
 static void moveRondellToKeyPosition(void) {
     findLongHoleAndPassIt();
