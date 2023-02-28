@@ -1,0 +1,13 @@
+M48
+METRIC,LZ,000.000
+;FILE_FORMAT=3:3
+;TYPE=PLATED
+;Layer: PTH_Through_Via
+;EasyEDA v6.5.22, 2023-02-28 18:31:49
+;0f5abc17f4e243e5a26b6cc200d52bdd,5d2348555bc34ac8837521f0f1db218d,10
+;Gerber Generator version 0.2
+T01C0.001
+%
+G05
+G90
+M30
